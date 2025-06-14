@@ -33,10 +33,11 @@ HOST = "127.0.0.1"
 def serializer(obj): return isinstance(obj, (date, datetime, Decimal)) and str(obj)  # noqa
 
 
+
 # Kite Connect App settings. Go to https://developers.kite.trade/apps/
 # to create an app if you don't have one.
-kite_api_key = "kite_api_key"
-kite_api_secret = "kite_api_secret"
+kite_api_key = "hycihzseatlg5xq3"
+kite_api_secret = "5rejz4knla5uxrjfom16flkprqnw86f2"
 
 # Create a redirect url
 redirect_url = "http://{host}:{port}/login".format(host=HOST, port=PORT)

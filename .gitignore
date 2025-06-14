@@ -1,5 +1,14 @@
-
 # Created by https://www.gitignore.io/api/osx,linux,macos,python,windows
+
+# Sensitive Kite Connect files
+api_key.txt
+access_token.txt
+request_token.txt
+app/api_key.txt
+app/access_token.txt
+app/request_token.txt
+.env
+app/.env
 
 ### Linux ###
 *~

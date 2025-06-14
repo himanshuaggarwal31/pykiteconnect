@@ -1,0 +1,6 @@
+tradingsymbol,exchange,trigger_type,trigger_values,last_price,transaction_type,quantity
+INFY,NSE,single,800,805,BUY,10
+TCS,NSE,single,3400,3480,BUY,5
+SBIN,NSE,single,570,580,BUY,50
+HDFCBANK,NSE,single,1450,1480,BUY,20
+RELAXO,NSE,two-leg,400;450,421.65,SELL,60

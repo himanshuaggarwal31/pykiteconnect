@@ -1,0 +1,18 @@
+conda create --name algo python=3.12
+conda activate algo
+conda deactivate
+
+
+& 'C:\Users\himan\anaconda3\python.exe' -m venv venv
+
+.\venv\Scripts\Activate.ps1
+
+python -m pip install -r requirements.txt
+
+
+
+hycihzseatlg5xq3
+5rejz4knla5uxrjfom16flkprqnw86f2
+GKS861
+Saawan@31
+2BM74UZAWWEEDRJRBGQ4CLNZJ5DG4SPH
