@@ -18,6 +18,7 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 TOKEN_PATH = os.path.join(APP_DIR, "api_key.txt")
 REQUEST_TOKEN_PATH = os.path.join(APP_DIR, "request_token.txt")
 ACCESS_TOKEN_PATH = os.path.join(APP_DIR, "access_token.txt")
+GTT_ACCESS_TOKEN_PATH = os.path.abspath(os.path.join(APP_DIR, "..", "gtt_webapp","access_token.txt"))
 
 def autologin():
     try:
@@ -72,7 +73,11 @@ if autologin():
         # Write access token using the full path
         with open(ACCESS_TOKEN_PATH, 'w') as file:
             file.write(data["access_token"])
-        print("Access token generated and stored in 'access_token.txt'.")
+
+        with open(GTT_ACCESS_TOKEN_PATH, 'w') as file:
+            file.write(data["access_token"])
+
+        print("Access token generated and stored in both 'access_token.txt' locations.")
         
     except Exception as e:
         print(f"Error generating session: {str(e)}")

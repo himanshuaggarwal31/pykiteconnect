@@ -16,5 +16,5 @@ Saawan@31
 2BM74UZAWWEEDRJRBGQ4CLNZJ5DG4SPH
 
 
-
+& C:/Himanshu/REPOS/pykiteconnect/venv/Scripts/python.exe c:/Himanshu/REPOS/pykiteconnect/app/AutoConnect.py
 .\venv\Scripts\Activate.ps1
