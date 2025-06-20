@@ -1,0 +1,165 @@
+<!-- Multi GTT Orders Modal -->
+<div class="modal fade" id="multiGttModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Place Multiple GTT Orders</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="multiGttForm">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Exchange</th>
+                                    <th>Type</th>
+                                    <th>Trigger Type</th>
+                                    <th>Trigger Values</th>
+                                    <th>Last Price</th>
+                                    <th>Transaction</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Remove</th>
+                                </tr>
+                            </thead>
+                            <tbody id="multiGttTbody">
+                                <!-- JS will add rows here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <strong>Total Amount Required: ₹<span id="multiGttTotalAmount">0.00</span></strong>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary mt-2" onclick="addMultiGttRow()">
+                        <i class="fas fa-plus"></i> Add Row
+                    </button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitMultiGttOrders()">Place All Orders</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function validateMultiGttRow(row) {
+    const symbol = row.querySelector('input[name="tradingsymbol"]').value.trim();
+    const exchange = row.querySelector('select[name="exchange"]').value;
+    const triggerType = row.querySelector('select[name="trigger_type"]').value;
+    const triggerValues = row.querySelector('input[name="trigger_values"]').value.trim();
+    const lastPrice = parseFloat(row.querySelector('input[name="last_price"]').value);
+    const qty = parseInt(row.querySelector('input[name="quantity"]').value);
+    const txnType = row.querySelector('select[name="transaction_type"]').value;
+    if (!symbol) return 'Symbol required';
+    if (!exchange) return 'Exchange required';
+    if (!triggerType) return 'Trigger type required';
+    if (!triggerValues) return 'Trigger values required';
+    if (isNaN(lastPrice) || lastPrice <= 0) return 'Last price must be positive';
+    if (isNaN(qty) || qty <= 0) return 'Quantity must be positive';
+    if (!txnType) return 'Transaction type required';
+    if (triggerType === 'two-leg') {
+        const vals = triggerValues.split(',').map(v => parseFloat(v.trim()));
+        if (vals.length !== 2 || vals.some(isNaN)) return 'Two-leg needs two valid numbers';
+        if (txnType === 'SELL' && !(vals[0] < lastPrice && lastPrice < vals[1])) return 'For SELL two-leg: stop_loss < last_price < target';
+        if (txnType === 'BUY') return 'Two-leg not supported for BUY';
+    } else {
+        const val = parseFloat(triggerValues);
+        if (isNaN(val)) return 'Trigger value must be a number';
+    }
+    return null;
+}
+function calcAmount(row) {
+    const qty = parseInt(row.querySelector('input[name="quantity"]').value);
+    let price = parseFloat(row.querySelector('input[name="trigger_values"]').value.split(',')[0]);
+    if (isNaN(qty) || isNaN(price)) return 0;
+    return qty * price;
+}
+function updateMultiGttAmounts() {
+    let total = 0;
+    document.querySelectorAll('#multiGttTbody tr').forEach(row => {
+        const amt = calcAmount(row);
+        row.querySelector('.multi-gtt-amount').textContent = amt ? amt.toFixed(2) : '0.00';
+        total += amt;
+    });
+    document.getElementById('multiGttTotalAmount').textContent = total.toFixed(2);
+}
+function addMultiGttRow() {
+    const tbody = document.getElementById('multiGttTbody');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td><input type="text" class="form-control" name="tradingsymbol" required></td>
+        <td>
+            <select class="form-select" name="exchange" required>
+                <option value="NSE">NSE</option>
+                <option value="BSE">BSE</option>
+            </select>
+        </td>
+        <td>
+            <select class="form-select" name="type" required>
+                <option value="LIMIT">LIMIT</option>
+            </select>
+        </td>
+        <td>
+            <select class="form-select" name="trigger_type" required>
+                <option value="single">Single</option>
+                <option value="two-leg">Two-Leg</option>
+            </select>
+        </td>
+        <td><input type="text" class="form-control" name="trigger_values" required></td>
+        <td><input type="number" step="0.01" class="form-control" name="last_price" required></td>
+        <td>
+            <select class="form-select" name="transaction_type" required>
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+            </select>
+        </td>
+        <td><input type="number" class="form-control" name="quantity" required></td>
+        <td class="multi-gtt-amount">0.00</td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); updateMultiGttAmounts();"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(row);
+    // Update amount on input
+    row.querySelectorAll('input,select').forEach(input => {
+        input.addEventListener('input', updateMultiGttAmounts);
+    });
+    updateMultiGttAmounts();
+}
+if (document.getElementById('multiGttTbody') && document.getElementById('multiGttTbody').children.length === 0) addMultiGttRow();
+function submitMultiGttOrders() {
+    const tbody = document.getElementById('multiGttTbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const orders = [];
+    for (const row of rows) {
+        const err = validateMultiGttRow(row);
+        if (err) {
+            row.scrollIntoView({behavior:'smooth', block:'center'});
+            alert('Row error: ' + err);
+            return;
+        }
+        const inputs = row.querySelectorAll('input,select');
+        const data = {};
+        inputs.forEach(input => {
+            data[input.name] = input.value;
+        });
+        orders.push(data);
+    }
+    fetch('/api/gtt/orders/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert('Placed ' + data.results.length + ' orders. Success: ' + data.results.filter(r => r.success).length);
+            location.reload();
+        }
+    })
+    .catch(err => alert('Error: ' + err));
+}
+</script>

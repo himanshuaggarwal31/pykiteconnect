@@ -1,0 +1,68 @@
+/* Table styles */
+.table {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.5rem;
+}
+
+.table > thead {
+    background-color: #f8fafc;
+}
+
+.table > thead th {
+    font-weight: 500;
+    color: #4b5563;
+    white-space: nowrap;
+}
+
+.table tbody tr:hover {
+    background-color: #f1f5f9;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Action buttons */
+.action-buttons {
+    white-space: nowrap;
+    text-align: center;
+}
+
+.action-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Form controls in table */
+.table .form-select-sm {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* Badge styles */
+.table .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    font-weight: 500;
+}
+
+/* Editable cells */
+.editable-cell {
+    position: relative;
+    cursor: pointer;
+}
+
+.editable-cell:hover::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e5e7eb;
+}

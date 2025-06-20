@@ -1,0 +1,35 @@
+.table.loading {
+    position: relative;
+    opacity: 0.6;
+}
+
+.table.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8) url('/static/img/loading.gif') center no-repeat;
+    background-size: 50px;
+    z-index: 1000;
+}
+
+.alert {
+    animation: slideDown 0.3s ease-out;
+}
+
+.alert-danger {
+    border-left: 4px solid #dc3545;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

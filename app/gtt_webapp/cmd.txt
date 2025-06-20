@@ -4,9 +4,7 @@ conda deactivate
 
 
 & 'C:\Users\himan\anaconda3\python.exe' -m venv venv
-
 .\venv\Scripts\Activate.ps1
-
 python -m pip install -r requirements.txt
 
 
@@ -16,3 +14,7 @@ hycihzseatlg5xq3
 GKS861
 Saawan@31
 2BM74UZAWWEEDRJRBGQ4CLNZJ5DG4SPH
+
+
+
+.\venv\Scripts\Activate.ps1

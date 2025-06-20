@@ -1,0 +1,17 @@
+# Flask and extensions
+Flask==2.3.3
+Flask-Assets==2.0
+Bootstrap-Flask==2.2.0
+cssmin==0.2.0
+jsmin==3.0.1
+Werkzeug==2.3.7
+
+# Database
+oracledb==1.4.1
+
+# KiteConnect
+kiteconnect==4.2.0
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0

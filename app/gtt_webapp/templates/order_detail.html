@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Order Details{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h3>GTT Order Details</h3>
+    {% if order %}
+    <table class="table table-bordered mt-3">
+        <tr><th>Symbol</th><td>{{ order.condition.tradingsymbol }}</td></tr>
+        <tr><th>Exchange</th><td>{{ order.condition.exchange }}</td></tr>
+        <tr><th>Type</th><td>{{ order.type }}</td></tr>
+        <tr><th>Trigger Values</th><td>{{ order.condition.trigger_values|join(', ') }}</td></tr>
+        <tr><th>Last Price</th><td>{{ order.condition.last_price }}</td></tr>
+        <tr><th>Transaction</th><td>{{ order.orders[0].transaction_type }}</td></tr>
+        <tr><th>Quantity</th><td>{{ order.orders[0].quantity }}</td></tr>
+        <tr><th>Status</th><td>{{ order.status }}</td></tr>
+        <tr><th>Created At</th><td>{{ order.created_at }}</td></tr>
+        <tr><th>Expires At</th><td>{{ order.expires_at }}</td></tr>
+    </table>
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    {% else %}
+    <div class="alert alert-warning">Order not found.</div>
+    {% endif %}
+</div>
+{% endblock %}

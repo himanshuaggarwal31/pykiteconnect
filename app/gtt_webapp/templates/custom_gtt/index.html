@@ -1,0 +1,375 @@
+{% extends 'base.html' %}
+
+{% block title %}Custom GTT Orders{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared-table.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Main header with actions -->
+    <div class="page-header">
+        <div>
+            <h2>
+                <i class="fas fa-layer-group"></i>Custom GTT Orders
+            </h2>
+        </div>
+        <div class="btn-toolbar">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addNewRow()">
+                <i class="fas fa-plus me-1"></i>Add Order
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openMultiGttModal()">
+                <i class="fas fa-upload me-1"></i>Place on Kite (Multi GTT)
+            </button>
+        </div>
+    </div>
+
+    <!-- Controls bar for search and length -->
+    <div class="controls-bar">
+        <div class="control-group">
+            <!-- Search -->
+            <div class="input-group input-group-sm search-input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" class="form-control" id="customGttSearch" placeholder="Search table...">
+            </div>
+            <!-- Length selector -->
+            <select class="form-select form-select-sm compact-select" id="customGttLength">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="-1">All</option>
+            </select>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-warning py-2" style="font-size: 0.875rem;">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Main table -->
+    <div class="table-wrapper">
+        <div class="table-responsive">
+            <table class="table table-hover" id="customGttTable">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAllOrders" class="form-check-input"></th>
+                        <th>Symbol</th>
+                        <th>Company Name</th>
+                        <th>Nifty Rank</th>
+                        <th>Order Type</th>
+                        <th>Trigger Price</th>
+                        <th>Last Price</th>
+                        <th>Quantity</th>
+                        <th>Target</th>
+                        <th>Stop Loss</th>
+                        <th>Notes</th>
+                        <th>Tags</th>
+                        <th>Kite Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customGttTableBody">
+                    {% for order in orders %}
+                    <tr data-id="{{ order.id }}">
+                        <td><input type="checkbox" class="order-select" value="{{ order.id }}"></td>
+                        <td class="editable-cell" data-field="symbol">{{ order.symbol }}</td>
+                        <td class="editable-cell" data-field="company_name">{{ order.company_name or '' }}</td>
+                        <td class="editable-cell" data-field="nifty_rank">{{ order.nifty_rank or '' }}</td>
+                        <td class="editable-cell" data-field="order_type">{{ order.order_type }}</td>
+                        <td class="editable-cell" data-field="trigger_price">{{ order.trigger_price }}</td>
+                        <td class="editable-cell" data-field="last_price">{{ order.last_price or '' }}</td>
+                        <td class="editable-cell" data-field="quantity">{{ order.quantity }}</td>
+                        <td class="editable-cell" data-field="target_price">{{ order.target_price or '' }}</td>
+                        <td class="editable-cell" data-field="stop_loss">{{ order.stop_loss or '' }}</td>
+                        <td class="editable-cell" data-field="notes">{{ order.notes or '' }}</td>
+                        <td class="editable-cell" data-field="tags">{{ order.tags or '' }}</td>
+                        <td>
+                            {% if order.placed_on_kite %}
+                            <span class="badge bg-success">On Kite</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Local Only</span>
+                            {% endif %}
+                        </td>
+                        <td class="action-buttons">
+                            {% if not order.placed_on_kite %}
+                            <button class="btn btn-sm btn-success action-btn" onclick="placeOrderOnKite({{ order.id }})" title="Place on Kite">
+                                <i class="fas fa-upload"></i> Place
+                            </button>
+                            {% else %}
+                            <button class="btn btn-sm btn-warning action-btn" onclick="resetKiteStatus({{ order.id }})" title="Reset Kite Status">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-sm btn-danger action-btn ms-2" onclick="deleteOrder({{ order.id }})" title="Delete">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Custom GTT Modal -->
+<div class="modal fade" id="addCustomGttModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Custom GTT Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCustomGttForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Symbol</label>
+                                <input type="text" class="form-control" name="symbol" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Company Name</label>
+                                <input type="text" class="form-control" name="company_name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nifty Rank</label>
+                                <input type="number" class="form-control" name="nifty_rank">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Order Type</label>
+                                <select class="form-select" name="order_type" required>
+                                    <option value="BUY">BUY</option>
+                                    <option value="SELL">SELL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Trigger Price</label>
+                                <input type="number" step="0.01" class="form-control" name="trigger_price" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Last Price</label>
+                                <input type="number" step="0.01" class="form-control" name="last_price">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-control" name="quantity" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Target Price</label>
+                                <input type="number" step="0.01" class="form-control" name="target_price">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Stop Loss</label>
+                                <input type="number" step="0.01" class="form-control" name="stop_loss">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tags</label>
+                        <input type="text" class="form-control" name="tags" placeholder="Comma-separated tags">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addCustomGtt()">Add Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Single GTT Place Modal -->
+<div class="modal fade" id="placeGttModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Place GTT Order on Kite</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="placeGttForm">
+                    <input type="hidden" name="id" id="placeGttId">
+                    <div class="mb-3">
+                        <label class="form-label">Trading Symbol</label>
+                        <input type="text" class="form-control" name="tradingsymbol" id="placeGttSymbol" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Exchange</label>
+                        <select class="form-select" name="exchange" id="placeGttExchange" required>
+                            <option value="NSE">NSE</option>
+                            <option value="BSE">BSE</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Trigger Type</label>
+                        <select class="form-select" name="trigger_type" id="placeGttTriggerType" required>
+                            <option value="single">Single</option>
+                            <option value="two-leg">Two-Leg</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Trigger Values</label>
+                        <input type="text" class="form-control" name="trigger_values" id="placeGttTriggerValues" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Price</label>
+                        <input type="number" step="0.01" class="form-control" name="last_price" id="placeGttLastPrice" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Transaction Type</label>
+                        <select class="form-select" name="transaction_type" id="placeGttTransactionType" required>
+                            <option value="BUY">BUY</option>
+                            <option value="SELL">SELL</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPlaceGttOrder()">Place Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Multi GTT Place Modal -->
+<div class="modal fade" id="multiGttModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Place Multiple GTT Orders on Kite</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="multiGttSummary"></div>
+                <div class="alert alert-info mt-2">Only required fields will be sent to Kite.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitMultiGttOrders()">Place All</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables and jQuery (add CDN if not already included in base.html) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" />
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    let gttTable = $('#customGttTable').DataTable({
+        order: [[1, 'asc']],
+        pageLength: 25,
+        autoWidth: false,
+        dom: 'rtip',
+    });
+    // Search
+    $('#customGttSearch').on('keyup', function() {
+        gttTable.search(this.value).draw();
+    });
+    // Page length
+    $('#customGttLength').on('change', function() {
+        let val = parseInt($(this).val());
+        gttTable.page.len(val).draw();
+    });
+});
+
+// Open single GTT modal and fill fields
+function placeOrderOnKite(id) {
+    const row = document.querySelector(`tr[data-id='${id}']`);
+    document.getElementById('placeGttId').value = id;
+    document.getElementById('placeGttSymbol').value = row.querySelector('[data-field="symbol"]').textContent;
+    document.getElementById('placeGttExchange').value = row.querySelector('[data-field="exchange"]')?.textContent || 'NSE';
+    document.getElementById('placeGttTriggerType').value = 'single'; // Default, adjust if you have this field
+    document.getElementById('placeGttTriggerValues').value = row.querySelector('[data-field="trigger_price"]').textContent;
+    document.getElementById('placeGttLastPrice').value = row.querySelector('[data-field="last_price"]').textContent;
+    document.getElementById('placeGttTransactionType').value = row.querySelector('[data-field="order_type"]').textContent;
+    const modal = new bootstrap.Modal(document.getElementById('placeGttModal'));
+    modal.show();
+}
+
+// Submit single GTT order to backend
+function submitPlaceGttOrder() {
+    const form = document.getElementById('placeGttForm');
+    const data = {
+        tradingsymbol: form.tradingsymbol.value,
+        exchange: form.exchange.value,
+        trigger_type: form.trigger_type.value,
+        trigger_values: form.trigger_values.value,
+        last_price: form.last_price.value,
+        transaction_type: form.transaction_type.value
+    };
+    fetch('/custom-gtt/place', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.error) alert('Error: ' + resp.error);
+        else location.reload();
+    })
+    .catch(e => alert('Error: ' + e));
+}
+
+// Open multi GTT modal and show summary
+function openMultiGttModal() {
+    const selected = Array.from(document.querySelectorAll('.order-select:checked'));
+    if (selected.length === 0) return alert('Select at least one order.');
+    let summary = '<ul>';
+    selected.forEach(cb => {
+        const row = cb.closest('tr');
+        summary += `<li>${row.querySelector('[data-field="symbol"]').textContent} (${row.querySelector('[data-field="order_type"]').textContent})</li>`;
+    });
+    summary += '</ul>';
+    document.getElementById('multiGttSummary').innerHTML = summary;
+    const modal = new bootstrap.Modal(document.getElementById('multiGttModal'));
+    modal.show();
+}
+
+// Submit multiple GTT orders to backend
+function submitMultiGttOrders() {
+    const selected = Array.from(document.querySelectorAll('.order-select:checked'));
+    const orders = selected.map(cb => {
+        const row = cb.closest('tr');
+        return {
+            tradingsymbol: row.querySelector('[data-field="symbol"]').textContent,
+            exchange: row.querySelector('[data-field="exchange"]')?.textContent || 'NSE',
+            trigger_type: 'single', // Default, adjust if you have this field
+            trigger_values: row.querySelector('[data-field="trigger_price"]').textContent,
+            last_price: row.querySelector('[data-field="last_price"]').textContent,
+            transaction_type: row.querySelector('[data-field="order_type"]').textContent
+        };
+    });
+    fetch('/custom-gtt/place-multi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders })
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.error) alert('Error: ' + resp.error);
+        else location.reload();
+    })
+    .catch(e => alert('Error: ' + e));
+}
+</script>
+<script src="{{ url_for('static', filename='js/gtt-orders.js') }}"></script>
+{% endblock %}

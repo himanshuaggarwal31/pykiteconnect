@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+
+{% block title %}Custom Data - GTT Orders{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared-table.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Main header with actions -->
+    <div class="page-header">
+        <div>
+            <h2>
+                <i class="fas fa-table"></i>Custom Data
+            </h2>
+        </div>
+        <div class="btn-toolbar">
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addDataModal">
+                <i class="fas fa-plus me-1"></i>Add New Entry
+            </button>
+        </div>
+    </div>
+
+    <!-- Compact controls bar -->
+    <div class="controls-bar">
+        <div class="control-group">
+            <!-- Search -->
+            <div class="input-group input-group-sm search-input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" class="form-control" id="customDataSearch" placeholder="Search table...">
+            </div>
+
+            <!-- Length selector -->
+            <select class="form-select form-select-sm compact-select" id="customDataLength">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="-1">All</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Main table -->
+    <div class="table-wrapper">
+        <div class="table-responsive">
+            <table class="table table-hover" id="customDataTable">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Quantity</th>
+                        <th>Avg Price</th>
+                        <th>S1</th>
+                        <th>S2</th>
+                        <th>S3</th>
+                        <th>S4</th>
+                        <th>S5</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody">
+                    <!-- Data will be populated via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Data Modal -->
+<div class="modal fade" id="addDataModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Entry</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDataForm">
+                    <div class="mb-3">
+                        <label class="form-label">Symbol</label>
+                        <input type="text" class="form-control" name="Symbol" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" class="form-control" name="Quantity">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Average Price</label>
+                        <input type="number" step="0.01" class="form-control" name="Avg_Price">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">S1</label>
+                        <input type="number" step="0.01" class="form-control" name="S1">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">S2</label>
+                        <input type="number" step="0.01" class="form-control" name="S2">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">S3</label>
+                        <input type="number" step="0.01" class="form-control" name="S3">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">S4</label>
+                        <input type="number" step="0.01" class="form-control" name="S4">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">S5</label>
+                        <input type="number" step="0.01" class="form-control" name="S5">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addData()">Add Entry</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load data when the page loads
+document.addEventListener('DOMContentLoaded', fetchData);
+
+function fetchData() {
+    fetch('/custom-data/fetch')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.SYMBOL}</td>
+                    <td class="editable" onclick="makeEditable(this, '${row.SYMBOL}', 'QUANTITY')">${row.QUANTITY || ''}</td>
+                    <td class="editable" onclick="makeEditable(this, '${row.SYMBOL}', 'AVG_PRICE')">${row.AVG_PRICE || ''}</td>
+                    <td class="editable" onclick="makeEditable(this, '${row.SYMBOL}', 'S1')">${row.S1 || ''}</td>
+                    <td class="editable" onclick="makeEditable(this, '${row.SYMBOL}', 'S2')">${row.S2 || ''}</td>
+                    <td class="editable" onclick="makeEditable(this, '${row.SYMBOL}', 'S3')">${row.S3 || ''}</td>
+                    <td class="editable" onclick="makeEditable(this, '${row.SYMBOL}', 'S4')">${row.S4 || ''}</td>
+                    <td class="editable" onclick="makeEditable(this, '${row.SYMBOL}', 'S5')">${row.S5 || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteData('${row.SYMBOL}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            initializeCustomDataTable();
+            // Custom search
+            $('#customDataSearch').off('keyup').on('keyup', function() {
+                customDataTableInstance.search(this.value).draw();
+            });
+            // Set density
+            let currentDensity = localStorage.getItem('customTableDensity') || 'compact';
+            setCustomTableDensity(currentDensity);
+            updateCustomDensityButtons(currentDensity);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error fetching data');
+        });
+}
+
+function makeEditable(td, symbol, column) {
+    const currentValue = td.textContent;
+    td.innerHTML = `
+        <input type="number" step="0.01" class="form-control form-control-sm" 
+               value="${currentValue}" 
+               onblur="updateValue(this, '${symbol}', '${column}')"
+               onkeyup="if(event.key==='Enter') this.blur()">
+    `;
+    td.querySelector('input').focus();
+}
+
+function updateValue(input, symbol, column) {
+    const newValue = input.value;
+    const td = input.parentElement;
+    
+    fetch('/custom-data/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            Symbol: symbol,
+            Column: column,
+            Value: newValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+            td.textContent = newValue;
+        } else {
+            td.textContent = newValue;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating value');
+        td.textContent = newValue;
+    });
+}
+
+function deleteData(symbol) {
+    if (confirm(`Are you sure you want to delete ${symbol}?`)) {
+        fetch('/custom-data/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ Symbol: symbol })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                fetchData();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting data');
+        });
+    }
+}
+
+function addData() {
+    const form = document.getElementById('addDataForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    fetch('/custom-data/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            fetchData();
+            form.reset();
+            bootstrap.Modal.getInstance(document.getElementById('addDataModal')).hide();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding data');
+    });
+}
+
+// Density control for custom data table
+function setCustomTableDensity(density) {
+    const table = $('#customDataTable');
+    if (density === 'compact') {
+        table.removeClass('table-normal').addClass('table-compact');
+    } else {
+        table.removeClass('table-compact').addClass('table-normal');
+    }
+    localStorage.setItem('customTableDensity', density);
+    updateCustomDensityButtons(density);
+}
+function updateCustomDensityButtons(density) {
+    $('#customCompactView').toggleClass('active', density === 'compact');
+    $('#customNormalView').toggleClass('active', density === 'normal');
+}
+
+let customDataTableInstance = null;
+
+function initializeCustomDataTable() {
+    if ($.fn.DataTable.isDataTable('#customDataTable')) {
+        $('#customDataTable').DataTable().destroy();
+    }
+    customDataTableInstance = $('#customDataTable').DataTable({
+        order: [[0, 'asc']],
+        pageLength: parseInt($('#customDataLength').val()) || 25,
+        autoWidth: false,
+        dom: 'rtip',
+    });
+    // Re-apply density class on every table draw
+    customDataTableInstance.on('draw', function() {
+        let density = localStorage.getItem('customTableDensity') || 'compact';
+        setCustomTableDensity(density);
+    });
+    // Update page length on dropdown change
+    $('#customDataLength').off('change').on('change', function() {
+        const val = parseInt($(this).val());
+        customDataTableInstance.page.len(val).draw();
+    });
+}
+
+// Call fetchData on page load
+$(document).ready(function() {
+    fetchData();
+    // Update table length on change
+    $('#customDataLength').on('change', function() {
+        let newLength = $(this).val();
+        customDataTableInstance.page.len(newLength).draw();
+    });
+});
+</script>
+{% endblock %}

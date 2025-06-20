@@ -1,0 +1,30 @@
+<!-- Controls bar -->
+<div class="controls-bar">
+    <div class="control-group">
+        <!-- Search -->
+        <div class="input-group input-group-sm search-input-group">
+            <span class="input-group-text">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" class="form-control" id="searchInput" 
+                   placeholder="Search..."
+                   value="{{ search_query|default('', true) }}">
+        </div>
+
+        <!-- Records per page -->
+        <select class="form-select form-select-sm records-per-page" id="recordsPerPage">
+            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+
+        <span class="records-info">
+            Showing <span id="currentRecords">{{ records|length|default(0) }}</span> 
+            of <span id="totalRecords">{{ total_count|default(0) }}</span> entries
+        </span>
+    </div>
+
+    <!-- Optional filters block -->
+    {% block extra_filters %}{% endblock %}
+</div>

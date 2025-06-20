@@ -1,0 +1,323 @@
+/* Main container optimization */
+.container-fluid {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+/* Content wrapper with optimized space */
+.content-wrapper {
+    background-color: #f9fafb;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: -0.5rem -0.5rem 0.75rem -0.5rem;
+}
+
+/* Page header with optimized layout */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(to right, #e8f0fe, #f1f8ff);
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e3eaf3;
+}
+
+.page-header h2 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #1a73e8;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.page-header h2 .fas {
+    color: #1a73e8;
+    opacity: 0.8;
+    margin-right: 0.5rem;
+}
+
+.page-header .btn-toolbar {
+    display: flex;
+    gap: 0.4rem;
+}
+
+/* Compact controls bar with improved layout */
+.controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-input-group {
+    width: 250px;
+}
+
+.records-per-page {
+    width: 80px;
+}
+
+.records-info {
+    color: #6b7280;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+}
+
+.control-group:first-child {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Improved search input */
+.search-input-group {
+    width: 180px;
+    min-width: 180px;
+    max-width: 250px;
+}
+
+.search-input-group .input-group-text {
+    background-color: #fff;
+    border-right: none;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.search-input-group .form-control {
+    border-left: none;
+    height: 31px;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.search-input-group .form-control:focus {
+    box-shadow: none;
+    border-color: #ced4da;
+}
+
+/* Compact select inputs */
+.compact-select {
+    width: auto;
+    min-width: 100px;
+    max-width: 150px;
+    height: 31px;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Table wrapper */
+.table-wrapper {
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    margin-bottom: 0;
+}
+
+/* Table styling */
+.table {
+    font-size: 0.875rem;
+    color: #495057;
+    margin: 0;
+}
+
+.table th {
+    background-color: #f8fafd;
+    border-bottom: 1px solid #e9ecef;
+    padding: 0.5rem !important;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #1a73e8;
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 0.4rem 0.5rem !important;
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
+    line-height: 1.2;
+}
+
+/* Sidebar styling */
+#sidebar {
+    min-width: 220px;
+    max-width: 220px;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, #f1f8ff, #e8f0fe);
+    border-right: 1px solid #e3eaf3;
+    transition: all 0.3s;
+}
+
+#sidebar .sidebar-header {
+    padding: 1rem;
+    background: #e8f0fe;
+    border-bottom: 1px solid #e3eaf3;
+}
+
+#sidebar .sidebar-header h3 {
+    font-size: 1.2rem;
+    margin: 0;
+    color: #1a73e8;
+    font-weight: 500;
+}
+
+#sidebar ul.components {
+    padding: 0;
+}
+
+#sidebar ul li {
+    border-bottom: 1px solid rgba(227, 234, 243, 0.5);
+}
+
+#sidebar ul li a {
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+    display: block;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+#sidebar ul li.active a,
+#sidebar ul li a:hover {
+    background: #fff;
+    color: #1a73e8;
+}
+
+#sidebar ul li a i {
+    width: 20px;
+    text-align: center;
+    margin-right: 0.5rem;
+    color: #1a73e8;
+}
+
+/* Main content area */
+#content {
+    padding: 0 1rem;
+    width: 100%;
+}
+
+/* Responsive layout improvements */
+@media (max-width: 992px) {
+    .controls-bar {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+
+    .control-group {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .control-group.ms-auto {
+        justify-content: flex-end;
+    }
+
+    .search-input-group {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+/* Action buttons */
+.action-buttons {
+    min-width: auto;
+    display: flex;
+    gap: 0.25rem;
+}
+
+.action-btn {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.75rem !important;
+}
+
+/* Density toggle */
+.density-control .btn-group {
+    height: 31px;
+}
+
+.density-control .btn {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+/* Status badges */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    font-weight: 500;
+}
+
+/* Navigation bar */
+.navbar {
+    background: linear-gradient(to right, #f1f8ff, #e8f0fe) !important;
+    border-bottom: 1px solid #e3eaf3;
+    padding: 0.5rem 1rem;
+}
+
+.navbar-brand, .nav-link {
+    color: #1a73e8 !important;
+    font-size: 0.9375rem;
+}
+
+.nav-link.active {
+    font-weight: 500;
+}
+
+/* DataTables customization */
+.dataTables_wrapper {
+    font-size: 0.875rem;
+}
+
+.dataTables_length, 
+.dataTables_filter {
+    margin-bottom: 0.5rem;
+}
+
+.dataTables_info {
+    padding-top: 0.5rem !important;
+    font-size: 0.8125rem;
+}
+
+.dataTables_paginate {
+    padding-top: 0.5rem !important;
+}
+
+/* Zebra striping */
+.table tbody tr:nth-of-type(odd) {
+    background-color: #fcfcfd;
+}
+
+/* Hover effect */
+.table tbody tr:hover {
+    background-color: #f8fafd;
+}

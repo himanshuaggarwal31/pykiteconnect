@@ -1,0 +1,76 @@
+/* Table styles */
+.table-compact {
+    font-size: 0.875rem;
+}
+
+.table-compact td, 
+.table-compact th {
+    padding: 0.12rem 0.3rem !important;
+    font-size: 0.80rem;
+    line-height: 1.05;
+}
+
+.table-normal {
+    font-size: 0.9375rem;
+}
+
+.table-normal td, 
+.table-normal th {
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.90rem;
+    line-height: 1.1;
+}
+
+/* Density control styles */
+.density-control {
+    margin-bottom: 1rem;
+}
+
+.density-control .btn-group {
+    margin-left: 0.5rem;
+}
+
+.density-control .btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Custom spacing for stats cards */
+.stats-cards {
+    margin-bottom: 1rem;
+}
+
+.stats-cards .card {
+    margin-bottom: 1rem;
+}
+
+/* Table cell content */
+.table td {
+    vertical-align: middle;
+    line-height: 1.2;
+}
+
+/* Reduce vertical spacing for all tables */
+.table td, .table th {
+    padding-top: 0.12rem !important;
+    padding-bottom: 0.12rem !important;
+}
+
+/* Badge adjustments */
+.badge {
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+}
+
+/* Action buttons in table */
+.btn-group .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Make table more readable */
+.table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}

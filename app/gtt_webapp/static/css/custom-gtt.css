@@ -1,0 +1,39 @@
+/* Custom styles for GTT Orders page */
+.custom-gtt-controls {
+    margin-bottom: 1rem;
+}
+
+.custom-gtt-table {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 1rem;
+}
+
+.custom-gtt-table thead th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.custom-gtt-table td.editable {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.custom-gtt-table td.editable:hover {
+    background-color: #f1f3f4;
+}
+
+.order-select {
+    width: 18px;
+    height: 18px;
+}
+
+/* Badge styles */
+.badge.bg-kite {
+    background-color: #4CAF50;
+}
+
+.badge.bg-local {
+    background-color: #9E9E9E;
+}
