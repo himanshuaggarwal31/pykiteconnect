@@ -7,14 +7,5 @@ conda deactivate
 .\venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 
-
-
-hycihzseatlg5xq3
-5rejz4knla5uxrjfom16flkprqnw86f2
-GKS861
-Saawan@31
-2BM74UZAWWEEDRJRBGQ4CLNZJ5DG4SPH
-
-
 & C:/Himanshu/REPOS/pykiteconnect/venv/Scripts/python.exe c:/Himanshu/REPOS/pykiteconnect/app/AutoConnect.py
 .\venv\Scripts\Activate.ps1
