@@ -6,7 +6,7 @@ def get_unique_zip_path(base_zip_path: Path) -> Path:
     counter = 1
     zip_path = base_zip_path
     while zip_path.exists():
-            zip_path = base_zip_path.with_name(f"{base_zip_path.stem}_{counter}{base_zip_path.suffix}")
+        zip_path = base_zip_path.with_name(f"{base_zip_path.stem}_{counter}{base_zip_path.suffix}")
         counter += 1
     return zip_path
 
