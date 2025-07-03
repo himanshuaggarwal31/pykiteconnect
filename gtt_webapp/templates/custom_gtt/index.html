@@ -124,16 +124,37 @@
                 <thead>
                     <tr>
                         <th><input type="checkbox" id="selectAllOrders"></th>
-                        <th>Symbol</th>
-                        <th>Company</th>
-                        <th>Exchange</th>
-                        <th>Type</th>
-                        <th>Trigger</th>
-                        <th>Last Price</th>
-                        <th>Quantity</th>
-                        <th>Amount</th>
+                        <th class="sortable" data-column="symbol">
+                            Symbol <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="company_name">
+                            Company <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="exchange">
+                            Exchange <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="order_type">
+                            Type <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="trigger_price">
+                            Trigger <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="last_price">
+                            Last Price <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="quantity">
+                            Quantity <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="amount">
+                            Amount <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="nifty_rank">
+                            Nifty Rank <i class="fas fa-sort sort-icon"></i>
+                        </th>
                         <th>Notes</th>
-                        <th>Kite Status</th>
+                        <th class="sortable" data-column="placed_on_kite">
+                            Kite Status <i class="fas fa-sort sort-icon"></i>
+                        </th>
                         <th>Actions</th>
                     </tr>
                 </thead>

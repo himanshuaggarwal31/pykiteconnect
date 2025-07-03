@@ -215,12 +215,19 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Initialized next page button');
         }
         
+        // Initialize sorting functionality
+        initializeSorting();
+        
     }, 100); // Small delay to ensure DOM is fully ready
     
     // Make debug function globally available (no floating button)
     window.performTableDebug = performTableDebug;
     
 });
+
+// Global variables for sorting
+let currentSortColumn = null;
+let currentSortDirection = 'asc';
 
 /**
  * Updates the orders table with data from the API
@@ -269,7 +276,7 @@ function updateOrdersTable(data) {
         console.log('No records found, showing empty state');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td colspan="12" class="text-center py-3">
+            <td colspan="13" class="text-center py-3">
                 <i class="fas fa-info-circle me-2"></i>No orders found. Add a new order to get started.
             </td>
         `;
@@ -365,14 +372,15 @@ function updateOrdersTable(data) {
         tr.innerHTML = `
             <td><input type="checkbox" class="order-select" value="${order.id || ''}" ${order.placed_on_kite ? 'disabled' : ''} onchange="handleCheckboxChange()"></td>
             <td>${order.symbol || 'N/A'}</td>
-            <td class="company-column">${order.company_name ? `<span title="${order.company_name}">${order.company_name.substring(0, 15)}${order.company_name.length > 15 ? '...' : ''}</span>` : ''}</td>
+            <td class="company-column">${order.company_name ? `<span title="${order.company_name}">${order.company_name.length > 25 ? order.company_name.substring(0, 25) + '...' : order.company_name}</span>` : ''}</td>
             <td>${order.exchange || 'NSE'}</td>
             <td>${order.order_type || 'N/A'}</td>
             <td>${triggerValuesDisplay}</td>
             <td>${order.last_price || 'N/A'}</td>
             <td>${order.quantity || 0}</td>
             <td class="text-end">${amountDisplay}</td>
-            <td class="notes-column">${order.notes ? `<span title="${order.notes}">${order.notes.substring(0, 20)}${order.notes.length > 20 ? '...' : ''}</span>` : ''}</td>
+            <td class="text-center">${order.nifty_rank ? order.nifty_rank : '<span class="text-muted">-</span>'}</td>
+            <td class="notes-column">${order.notes ? `<span title="${order.notes}">${order.notes.length > 20 ? order.notes.substring(0, 20) + '...' : order.notes}</span>` : ''}</td>
             <td>${statusBadge}</td>
             <td class="action-buttons">${actionButtons}</td>
         `;
@@ -635,9 +643,10 @@ function showOrderModal(orderId = null) {
     }
     
     // Initialize modal
+    let modal;
     try {
         console.log('Creating new Bootstrap modal instance');
-        const modal = new bootstrap.Modal(modalElement, {
+        modal = new bootstrap.Modal(modalElement, {
             backdrop: 'static',
             keyboard: false
         });
@@ -660,35 +669,23 @@ function showOrderModal(orderId = null) {
             }
         }
         
-        // Show the modal
-        console.log('Showing modal');
-        modal.show();
+        // Don't show modal here - we'll show it after data is populated for edit mode
+        // or immediately for add mode in the conditional logic below
         
-        // Verify modal is visible
-        setTimeout(() => {
-            const isModalVisible = modalElement.classList.contains('show');
-            console.log('Modal visible state after show():', isModalVisible);
-            
-            // If not visible, try alternate methods
-            if (!isModalVisible) {
-                console.log('Modal not showing, trying jQuery fallback if available');
-                if (typeof jQuery !== 'undefined') {
-                    console.log('jQuery is available, trying jQuery modal show');
-                    try {
-                        jQuery(modalElement).modal('show');
-                    } catch (jqErr) {
-                        console.error('jQuery modal fallback failed:', jqErr);
-                    }
-                }
-            }
-        }, 100);
+        // Verify modal instance is ready
+        console.log('Modal instance created, ready for conditional logic');
     } catch (err) {
-        console.error('Error creating or showing modal:', err);
+        console.error('Error creating modal:', err);
+        return;
     }
     
     if (orderId) {
-        // Edit mode
-        modalTitle.textContent = 'Edit Order';
+        // Edit mode - fetch order data first before showing modal
+        console.log('Edit mode for order ID:', orderId);
+        const modalTitle = document.getElementById('orderModalTitle');
+        if (modalTitle) {
+            modalTitle.textContent = 'Edit Order';
+        }
         document.getElementById('orderId').value = orderId;
         
         // Fetch order data
@@ -706,32 +703,45 @@ function showOrderModal(orderId = null) {
                 }
                 
                 const order = data.order;
+                console.log('Order data fetched:', order);
                 
-                // Fill form with order data
-                document.getElementById('symbol').value = order.symbol;
-                document.getElementById('companyName').value = order.company_name || '';
-                document.getElementById('exchange').value = order.exchange || 'NSE';
-                document.getElementById('orderType').value = order.order_type;
-                document.getElementById('triggerType').value = order.trigger_type;
-                document.getElementById('lastPrice').value = order.last_price || '';
-                document.getElementById('quantity').value = order.quantity;
-                document.getElementById('notes').value = order.notes || '';
-                document.getElementById('niftyRank').value = order.nifty_rank || '';
+                // Fill form with order data - with null checks
+                const setFieldValue = (fieldId, value) => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.value = value || '';
+                        console.log(`Set ${fieldId} = ${value || ''}`);
+                    } else {
+                        console.error(`Field ${fieldId} not found!`);
+                    }
+                };
+                
+                setFieldValue('symbol', order.symbol);
+                setFieldValue('companyName', order.company_name);
+                setFieldValue('exchange', order.exchange || 'NSE');
+                setFieldValue('orderType', order.order_type || 'BUY');
+                setFieldValue('triggerType', order.trigger_type || 'single');
+                setFieldValue('lastPrice', order.last_price);
+                setFieldValue('quantity', order.quantity);
+                setFieldValue('notes', order.notes);
+                setFieldValue('niftyRank', order.nifty_rank);
                 
                 // Handle trigger type fields
-                toggleTriggerFields(order.trigger_type);
+                const triggerType = order.trigger_type || 'single';
+                toggleTriggerFields(triggerType);
                 
-                if (order.trigger_type === 'single') {
-                    document.getElementById('triggerPrice').value = order.trigger_price || '';
-                } else if (order.trigger_type === 'two-leg') {
-                    document.getElementById('stopLoss').value = order.stop_loss || '';
-                    document.getElementById('targetPrice').value = order.target_price || '';
+                if (triggerType === 'single') {
+                    setFieldValue('triggerPrice', order.trigger_price);
+                } else if (triggerType === 'two-leg') {
+                    setFieldValue('stopLoss', order.stop_loss);
+                    setFieldValue('targetPrice', order.target_price);
                 }
                 
                 // Update order amount
                 updateOrderAmount();
                 
-                // Show modal
+                // Show modal after data is populated
+                console.log('Showing modal with populated data');
                 modal.show();
             })
             .catch(error => {
@@ -740,15 +750,20 @@ function showOrderModal(orderId = null) {
             });
     } else {
         // Add mode
-        modalTitle.textContent = 'Add New Order';
+        console.log('Add mode - new order');
+        const modalTitle = document.getElementById('orderModalTitle');
+        if (modalTitle) {
+            modalTitle.textContent = 'Add New Order';
+        }
         document.getElementById('orderId').value = '';
         document.getElementById('triggerType').value = 'single';
         document.getElementById('exchange').value = 'NSE';
+        document.getElementById('orderType').value = 'BUY';
         
         // Show only single trigger fields
         toggleTriggerFields('single');
         
-        // Show modal
+        // Show modal immediately for new orders
         modal.show();
     }
 }
@@ -1254,6 +1269,114 @@ function resetOrder(orderId) {
                 });
         }
     );
+}
+
+/**
+ * Initialize sorting functionality
+ */
+function initializeSorting() {
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.getAttribute('data-column');
+            sortTable(column);
+        });
+    });
+    console.log('✅ Sorting functionality initialized');
+}
+
+/**
+ * Sort table by column
+ */
+function sortTable(column) {
+    // Toggle sort direction if same column
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+    }
+    
+    // Update header styling
+    updateSortHeaders();
+    
+    // Trigger search with current parameters and sort
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        const event = new Event('input', { bubbles: true });
+        searchInput.dispatchEvent(event);
+    } else {
+        // If no search input, load data with sort parameters
+        loadTableData();
+    }
+    
+    console.log(`Sorted by ${column} (${currentSortDirection})`);
+}
+
+/**
+ * Update sort header styling
+ */
+function updateSortHeaders() {
+    // Reset all headers
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+    });
+    
+    // Set current sorted header
+    if (currentSortColumn) {
+        const currentHeader = document.querySelector(`[data-column="${currentSortColumn}"]`);
+        if (currentHeader) {
+            currentHeader.classList.add(`sort-${currentSortDirection}`);
+        }
+    }
+}
+
+/**
+ * Load table data with current filters and sorting
+ */
+function loadTableData() {
+    const orderTypeFilter = document.getElementById('orderTypeFilter');
+    const kiteStatusFilter = document.getElementById('kiteStatusFilter');
+    const recordsPerPage = document.getElementById('recordsPerPage');
+    const searchInput = document.getElementById('searchInput');
+    
+    const params = new URLSearchParams({
+        page: 1,
+        per_page: recordsPerPage ? recordsPerPage.value : 25
+    });
+    
+    if (searchInput && searchInput.value) {
+        params.append('search', searchInput.value);
+    }
+    
+    if (orderTypeFilter && orderTypeFilter.value) {
+        params.append('order_type', orderTypeFilter.value);
+    }
+    
+    if (kiteStatusFilter && kiteStatusFilter.value) {
+        params.append('kite_status', kiteStatusFilter.value);
+    }
+    
+    // Add sorting parameters
+    if (currentSortColumn) {
+        params.append('sort_by', currentSortColumn);
+        params.append('sort_order', currentSortDirection);
+    }
+    
+    fetch(`/api/custom-gtt/orders?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showToast(data.error, 'error');
+                return;
+            }
+            
+            updateOrdersTable(data);
+        })
+        .catch(error => {
+            console.error('Error loading table data:', error);
+            showToast('Failed to load data', 'error');
+        });
 }
 
 /**

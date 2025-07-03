@@ -101,6 +101,13 @@ function initializeSearch(options = {}) {
             console.log(`[search.js] Added page param: ${pageNum}`);
         }
 
+        // Add sorting parameters if available (global variables)
+        if (typeof currentSortColumn !== 'undefined' && currentSortColumn) {
+            params.append('sort_by', currentSortColumn);
+            params.append('sort_order', currentSortDirection || 'asc');
+            console.log(`[search.js] Added sort params: ${currentSortColumn} ${currentSortDirection || 'asc'}`);
+        }
+
         // Show loading state
         const table = document.getElementById(tableId);
         if (table) {

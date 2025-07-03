@@ -137,6 +137,7 @@
 }
 
 .notes-column span, .company-column span {
+    display: inline-block;
     cursor: help;
 }
 
@@ -219,69 +220,68 @@
     width: auto !important;
 }
 
-/* Specific column widths for proper alignment - Higher specificity */
+/* Specific column widths for proper alignment - Updated for 13 columns */
 .table-responsive #customGttTable thead th:nth-child(1),
 .table-responsive #customGttTable tbody td:nth-child(1) { 
-    width: 40px !important; 
-    min-width: 40px !important;
-    max-width: 40px !important;
+    width: 35px !important; 
+    min-width: 35px !important;
+    max-width: 35px !important;
     text-align: center;
     padding: 0.1rem !important;
 }
 
 .table-responsive #customGttTable thead th:nth-child(2),
 .table-responsive #customGttTable tbody td:nth-child(2) { 
-    width: 80px !important; 
-    min-width: 80px !important;
-    max-width: 80px !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    width: 90px !important; 
+    min-width: 90px !important;
+    max-width: 90px !important;
+    font-weight: 600;
 }
 
 .table-responsive #customGttTable thead th:nth-child(3),
 .table-responsive #customGttTable tbody td:nth-child(3) { 
-    width: 140px !important; 
-    min-width: 140px !important;
-    max-width: 140px !important;
+    width: 130px !important; 
+    min-width: 130px !important;
+    max-width: 130px !important;
 }
 
 .table-responsive #customGttTable thead th:nth-child(4),
 .table-responsive #customGttTable tbody td:nth-child(4) { 
-    width: 70px !important; 
-    min-width: 70px !important;
-    max-width: 70px !important;
-    text-align: center;
-}
-
-.table-responsive #customGttTable thead th:nth-child(5),
-.table-responsive #customGttTable tbody td:nth-child(5) { 
     width: 60px !important; 
     min-width: 60px !important;
     max-width: 60px !important;
     text-align: center;
 }
 
+.table-responsive #customGttTable thead th:nth-child(5),
+.table-responsive #customGttTable tbody td:nth-child(5) { 
+    width: 50px !important; 
+    min-width: 50px !important;
+    max-width: 50px !important;
+    text-align: center;
+}
+
 .table-responsive #customGttTable thead th:nth-child(6),
 .table-responsive #customGttTable tbody td:nth-child(6) { 
-    width: 80px !important; 
-    min-width: 80px !important;
-    max-width: 80px !important;
+    width: 70px !important; 
+    min-width: 70px !important;
+    max-width: 70px !important;
     text-align: center;
 }
 
 .table-responsive #customGttTable thead th:nth-child(7),
 .table-responsive #customGttTable tbody td:nth-child(7) { 
-    width: 80px !important; 
-    min-width: 80px !important;
-    max-width: 80px !important;
+    width: 70px !important; 
+    min-width: 70px !important;
+    max-width: 70px !important;
     text-align: right;
 }
 
 .table-responsive #customGttTable thead th:nth-child(8),
 .table-responsive #customGttTable tbody td:nth-child(8) { 
-    width: 70px !important; 
-    min-width: 70px !important;
-    max-width: 70px !important;
+    width: 60px !important; 
+    min-width: 60px !important;
+    max-width: 60px !important;
     text-align: right;
 }
 
@@ -295,9 +295,10 @@
 
 .table-responsive #customGttTable thead th:nth-child(10),
 .table-responsive #customGttTable tbody td:nth-child(10) { 
-    width: 100px !important; 
-    min-width: 100px !important;
-    max-width: 100px !important;
+    width: 60px !important; 
+    min-width: 60px !important;
+    max-width: 60px !important;
+    text-align: center;
 }
 
 .table-responsive #customGttTable thead th:nth-child(11),
@@ -310,9 +311,17 @@
 
 .table-responsive #customGttTable thead th:nth-child(12),
 .table-responsive #customGttTable tbody td:nth-child(12) { 
-    width: 160px !important; 
-    min-width: 160px !important;
-    max-width: 160px !important;
+    width: 70px !important; 
+    min-width: 70px !important;
+    max-width: 70px !important;
+    text-align: center;
+}
+
+.table-responsive #customGttTable thead th:nth-child(13),
+.table-responsive #customGttTable tbody td:nth-child(13) { 
+    width: 140px !important; 
+    min-width: 140px !important;
+    max-width: 140px !important;
     text-align: center;
 }
 
@@ -502,4 +511,87 @@
 .table-responsive #customGttTable.use-grid th:nth-child(12),
 .table-responsive #customGttTable.use-grid td:nth-child(12) {
     width: calc(9% - 2px) !important;
+}
+
+/* Table column improvements */
+.company-column {
+    min-width: 150px;
+    max-width: 200px;
+}
+
+.company-column span {
+    display: inline-block;
+    cursor: help;
+}
+
+.notes-column {
+    min-width: 120px;
+    max-width: 150px;
+}
+
+.notes-column span {
+    display: inline-block;
+    cursor: help;
+}
+
+/* Nifty Rank column styling */
+th:nth-child(10), /* Nifty Rank header */
+td:nth-child(10) { /* Nifty Rank cells */
+    text-align: center;
+    width: 80px;
+    min-width: 80px;
+}
+
+/* Amount column alignment */
+th:nth-child(9), /* Amount header */
+td:nth-child(9) { /* Amount cells */
+    text-align: right;
+    width: 120px;
+    min-width: 120px;
+}
+
+/* Sortable table headers */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
+
+.sort-icon {
+    margin-left: 0.3rem;
+    opacity: 0.5;
+    font-size: 0.7rem;
+    transition: opacity 0.2s ease;
+}
+
+.sortable.sort-asc .sort-icon {
+    opacity: 1;
+    color: #007bff;
+}
+
+.sortable.sort-desc .sort-icon {
+    opacity: 1;
+    color: #007bff;
+}
+
+.sortable.sort-asc .sort-icon:before {
+    content: "\f0de"; /* fa-sort-up */
+}
+
+.sortable.sort-desc .sort-icon:before {
+    content: "\f0dd"; /* fa-sort-down */
+}
+
+.sortable .sort-icon:before {
+    content: "\f0dc"; /* fa-sort */
+}
+
+/* Make table header clickable areas larger */
+.sortable {
+    padding: 0.3rem 0.2rem !important;
 }

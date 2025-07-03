@@ -135,14 +135,16 @@ def get_orders():
         # Log the request for debugging
         logger.info(f"[API] GET /orders request received with args: {request.args}")
         
-        # Get query parameters for filtering
+        # Get query parameters for filtering and sorting
         search = request.args.get('search', '')
         order_type = request.args.get('order_type', '')
         kite_status = request.args.get('kite_status', '')
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 25))
+        sort_by = request.args.get('sort_by', '')
+        sort_order = request.args.get('sort_order', 'asc')
         
-        logger.debug(f"[API] Filtered parameters: search='{search}', order_type='{order_type}', kite_status='{kite_status}', page={page}, per_page={per_page}")
+        logger.debug(f"[API] Filtered parameters: search='{search}', order_type='{order_type}', kite_status='{kite_status}', page={page}, per_page={per_page}, sort_by='{sort_by}', sort_order='{sort_order}'")
         
         # Get orders from database
         orders = get_custom_gtt_orders(
@@ -150,7 +152,9 @@ def get_orders():
             order_type=order_type,
             kite_status=kite_status,
             page=page,
-            per_page=per_page
+            per_page=per_page,
+            sort_by=sort_by,
+            sort_order=sort_order
         )
         
         logger.info(f"[API] Retrieved {len(orders['records'])} orders out of {orders['total_count']} total")

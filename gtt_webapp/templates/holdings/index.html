@@ -475,66 +475,89 @@ function sortTable(column) {
     filteredHoldings.sort((a, b) => {
         let valueA, valueB;
         
-        switch (column) {
-            case 'symbol':
-                valueA = a.getAttribute('data-symbol').toLowerCase();
-                valueB = b.getAttribute('data-symbol').toLowerCase();
-                break;
-            case 'exchange':
-                valueA = a.getAttribute('data-exchange').toLowerCase();
-                valueB = b.getAttribute('data-exchange').toLowerCase();
-                break;
-            case 'quantity':
-                valueA = parseFloat(a.cells[2].textContent) || 0;
-                valueB = parseFloat(b.cells[2].textContent) || 0;
-                break;
-            case 'avg_price':
-                valueA = parseFloat(a.cells[3].textContent.replace(/[₹,]/g, '')) || 0;
-                valueB = parseFloat(b.cells[3].textContent.replace(/[₹,]/g, '')) || 0;
-                break;
-            case 'ltp':
-                valueA = parseFloat(a.cells[4].textContent.replace(/[₹,]/g, '')) || 0;
-                valueB = parseFloat(b.cells[4].textContent.replace(/[₹,]/g, '')) || 0;
-                break;
-            case 'investment':
-                valueA = parseFloat(a.cells[5].textContent.replace(/[₹,]/g, '')) || 0;
-                valueB = parseFloat(b.cells[5].textContent.replace(/[₹,]/g, '')) || 0;
-                break;
-            case 'current_value':
-                valueA = parseFloat(a.cells[6].textContent.replace(/[₹,]/g, '')) || 0;
-                valueB = parseFloat(b.cells[6].textContent.replace(/[₹,]/g, '')) || 0;
-                break;
-            case 'pnl':
-                valueA = parseFloat(a.cells[7].textContent.replace(/[₹,]/g, '')) || 0;
-                valueB = parseFloat(b.cells[7].textContent.replace(/[₹,]/g, '')) || 0;
-                break;
-            case 'pnl_pct':
-                valueA = parseFloat(a.cells[8].textContent.replace(/[%]/g, '')) || 0;
-                valueB = parseFloat(b.cells[8].textContent.replace(/[%]/g, '')) || 0;
-                break;
-            case 'day_change':
-                const dayChangeA = a.cells[9].textContent.match(/₹([-+]?\d*\.?\d+)/);
-                const dayChangeB = b.cells[9].textContent.match(/₹([-+]?\d*\.?\d+)/);
-                valueA = dayChangeA ? parseFloat(dayChangeA[1]) : 0;
-                valueB = dayChangeB ? parseFloat(dayChangeB[1]) : 0;
-                break;
-            default:
-                return 0;
+        try {
+            switch (column) {
+                case 'symbol':
+                    valueA = (a.getAttribute('data-symbol') || '').toLowerCase();
+                    valueB = (b.getAttribute('data-symbol') || '').toLowerCase();
+                    break;
+                case 'exchange':
+                    valueA = (a.getAttribute('data-exchange') || '').toLowerCase();
+                    valueB = (b.getAttribute('data-exchange') || '').toLowerCase();
+                    break;
+                case 'quantity':
+                    valueA = parseFloat(a.cells[2]?.textContent?.trim() || '0') || 0;
+                    valueB = parseFloat(b.cells[2]?.textContent?.trim() || '0') || 0;
+                    break;
+                case 'avg_price':
+                    valueA = parseFloat((a.cells[3]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    valueB = parseFloat((b.cells[3]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    break;
+                case 'ltp':
+                    valueA = parseFloat((a.cells[4]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    valueB = parseFloat((b.cells[4]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    break;
+                case 'investment':
+                    valueA = parseFloat((a.cells[5]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    valueB = parseFloat((b.cells[5]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    break;
+                case 'current_value':
+                    valueA = parseFloat((a.cells[6]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    valueB = parseFloat((b.cells[6]?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    break;
+                case 'pnl':
+                    // Extract from the pnl-badge span
+                    const pnlSpanA = a.cells[7]?.querySelector('.pnl-badge');
+                    const pnlSpanB = b.cells[7]?.querySelector('.pnl-badge');
+                    valueA = parseFloat((pnlSpanA?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    valueB = parseFloat((pnlSpanB?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    break;
+                case 'pnl_pct':
+                    // Extract percentage value, handling profit/loss/neutral spans
+                    const pctSpanA = a.cells[8]?.querySelector('span');
+                    const pctSpanB = b.cells[8]?.querySelector('span');
+                    valueA = parseFloat((pctSpanA?.textContent || '').replace(/[%\s]/g, '')) || 0;
+                    valueB = parseFloat((pctSpanB?.textContent || '').replace(/[%\s]/g, '')) || 0;
+                    break;
+                case 'day_change':
+                    // Extract day change value from the span
+                    const changeSpanA = a.cells[9]?.querySelector('span');
+                    const changeSpanB = b.cells[9]?.querySelector('span');
+                    const changeMatchA = (changeSpanA?.textContent || '').match(/₹([-+]?\d*\.?\d+)/);
+                    const changeMatchB = (changeSpanB?.textContent || '').match(/₹([-+]?\d*\.?\d+)/);
+                    valueA = changeMatchA ? parseFloat(changeMatchA[1]) : 0;
+                    valueB = changeMatchB ? parseFloat(changeMatchB[1]) : 0;
+                    break;
+                default:
+                    console.warn(`Unknown sort column: ${column}`);
+                    return 0;
+            }
+        } catch (error) {
+            console.error(`Error parsing values for column ${column}:`, error);
+            valueA = 0;
+            valueB = 0;
         }
         
-        if (typeof valueA === 'string') {
+        // Handle string comparison
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
             return currentSortDirection === 'asc' 
                 ? valueA.localeCompare(valueB)
                 : valueB.localeCompare(valueA);
-        } else {
-            return currentSortDirection === 'asc' 
-                ? valueA - valueB
-                : valueB - valueA;
         }
+        
+        // Handle numeric comparison
+        const numA = isNaN(valueA) ? 0 : valueA;
+        const numB = isNaN(valueB) ? 0 : valueB;
+        
+        return currentSortDirection === 'asc' 
+            ? numA - numB
+            : numB - numA;
     });
     
     // Update table display
     updateTableDisplay();
+    
+    console.log(`Sorted by ${column} (${currentSortDirection})`);
 }
 
 function updateSortHeaders() {
@@ -544,9 +567,11 @@ function updateSortHeaders() {
     });
     
     // Set current sorted header
-    const currentHeader = document.querySelector(`[data-column="${currentSortColumn}"]`);
-    if (currentHeader) {
-        currentHeader.classList.add(`sort-${currentSortDirection}`);
+    if (currentSortColumn) {
+        const currentHeader = document.querySelector(`[data-column="${currentSortColumn}"]`);
+        if (currentHeader) {
+            currentHeader.classList.add(`sort-${currentSortDirection}`);
+        }
     }
 }
 
@@ -758,7 +783,18 @@ function handleSearch() {
     });
     
     applyCurrentFilters();
-    updateTableDisplay();
+    
+    // Re-apply current sort if any
+    if (currentSortColumn) {
+        // Store current sort and reapply
+        const tempColumn = currentSortColumn;
+        const tempDirection = currentSortDirection;
+        currentSortColumn = null; // Reset to force proper sort
+        sortTable(tempColumn);
+        currentSortDirection = tempDirection;
+    } else {
+        updateTableDisplay();
+    }
 }
 
 function applyFilters() {
@@ -799,7 +835,12 @@ function applyFilters() {
         });
     }
     
-    updateTableDisplay();
+    // Re-apply current sort if any
+    if (currentSortColumn) {
+        sortTable(currentSortColumn);
+    } else {
+        updateTableDisplay();
+    }
 }
 
 function applyCurrentFilters() {
@@ -831,6 +872,14 @@ function updateTableDisplay() {
     // Hide all rows first
     allHoldings.forEach(row => {
         row.style.display = 'none';
+    });
+    
+    // Get the table body to maintain proper DOM order
+    const tbody = document.getElementById('holdingsTableBody');
+    
+    // Reorder the DOM elements to match the sorted filtered holdings
+    filteredHoldings.forEach(row => {
+        tbody.appendChild(row);
     });
     
     // Show filtered rows up to the limit

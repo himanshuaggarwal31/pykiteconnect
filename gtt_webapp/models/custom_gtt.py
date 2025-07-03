@@ -312,12 +312,12 @@ def delete_custom_gtt_order(order_id):
         if connection:
             connection.close()
 
-def get_custom_gtt_orders(search='', order_type='', kite_status='', page=1, per_page=25):
+def get_custom_gtt_orders(search='', order_type='', kite_status='', page=1, per_page=25, sort_by='', sort_order='asc'):
     """Get all custom GTT orders with filtering, pagination, and sorting"""
     logger = get_custom_logger()
     connection = None
     try:
-        logger.debug(f"[DEBUG][get_custom_gtt_orders] Fetching orders with search: '{search}', order_type: '{order_type}', kite_status: '{kite_status}', page: {page}, per_page: {per_page}")
+        logger.debug(f"[DEBUG][get_custom_gtt_orders] Fetching orders with search: '{search}', order_type: '{order_type}', kite_status: '{kite_status}', page: {page}, per_page: {per_page}, sort_by: '{sort_by}', sort_order: '{sort_order}'")
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
@@ -353,12 +353,41 @@ def get_custom_gtt_orders(search='', order_type='', kite_status='', page=1, per_
         # Calculate pagination
         offset = (page - 1) * per_page
         
-        # Get records with pagination
+        # Build ORDER BY clause for sorting
+        order_by_clause = "updated_at DESC"  # Default sorting
+        
+        if sort_by:
+            # Map frontend column names to database column names
+            column_mapping = {
+                'symbol': 'symbol',
+                'company_name': 'company_name',
+                'exchange': 'exchange',
+                'order_type': 'order_type',
+                'trigger_price': 'trigger_price',
+                'last_price': 'last_price',
+                'quantity': 'quantity',
+                'amount': 'amount',
+                'nifty_rank': 'nifty_rank',
+                'placed_on_kite': 'placed_on_kite',
+                'created_at': 'created_at',
+                'updated_at': 'updated_at'
+            }
+            
+            # Validate sort column
+            if sort_by in column_mapping:
+                db_column = column_mapping[sort_by]
+                sort_direction = 'ASC' if sort_order.lower() == 'asc' else 'DESC'
+                order_by_clause = f"{db_column} {sort_direction}"
+                logger.debug(f"[DEBUG][get_custom_gtt_orders] Custom sorting: {order_by_clause}")
+            else:
+                logger.warning(f"[WARNING][get_custom_gtt_orders] Invalid sort column: {sort_by}, using default sort")
+        
+        # Get records with pagination and sorting
         query = f"""
             SELECT * FROM (
                 SELECT 
                     o.*,
-                    ROW_NUMBER() OVER (ORDER BY updated_at DESC) AS rn
+                    ROW_NUMBER() OVER (ORDER BY {order_by_clause}) AS rn
                 FROM custom_gtt_orders o
                 WHERE {where_clause}
             ) WHERE rn > :offset AND rn <= :limit
