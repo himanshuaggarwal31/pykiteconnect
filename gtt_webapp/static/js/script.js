@@ -80,6 +80,12 @@ function updateTableRow(tableId, rowIndex, data) {
     const row = table.rows[rowIndex];
     if (!row) return;
     
+    // Safety check for data
+    if (!data || typeof data !== 'object') {
+        console.warn('updateTableRow: Invalid data provided');
+        return;
+    }
+    
     Object.entries(data).forEach(([key, value]) => {
         const cell = row.querySelector(`[data-field="${key}"]`);
         if (cell) {

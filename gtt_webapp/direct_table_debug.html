@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Table Debug</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/shared-table.css">
+    <link rel="stylesheet" href="/static/css/custom-gtt.css">
+    <style>
+        body { padding: 20px; }
+        .debug-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 2px solid #007bff; 
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        .result { 
+            background: #fff; 
+            padding: 10px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        .test-table-container {
+            border: 3px solid red;
+            padding: 10px;
+            margin: 10px 0;
+            background: #fffacd;
+        }
+    </style>
+</head>
+<body>
+    <h1><i class="fas fa-wrench"></i> Direct Table Debug Test</h1>
+    
+    <div class="debug-section">
+        <h3>1. CSS Loading Test</h3>
+        <button class="btn btn-primary" onclick="testCSS()">Test CSS Classes</button>
+        <div id="cssResult" class="result"></div>
+        <div id="cssDemo" class="mt-3"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>2. API Data Test</h3>
+        <button class="btn btn-success" onclick="testAPI()">Fetch API Data</button>
+        <div id="apiResult" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>3. Create Exact Table Structure</h3>
+        <button class="btn btn-warning" onclick="createExactTable()">Create Same Table as Main Page</button>
+        <div class="test-table-container">
+            <div id="exactTableContainer"></div>
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>4. Manual Population Test</h3>
+        <button class="btn btn-info" onclick="populateTable()">Populate with Real Data</button>
+        <button class="btn btn-secondary ms-2" onclick="populateWithTestData()">Populate with Test Data</button>
+        <div id="populationResult" class="result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>5. JavaScript Function Test</h3>
+        <button class="btn btn-danger" onclick="testJSFunctions()">Test updateOrdersTable Function</button>
+        <div id="jsResult" class="result"></div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/search.js"></script>
+    <script src="/static/js/custom-gtt.js"></script>
+    
+    <script>
+        let apiData = null;
+        
+        function testCSS() {
+            const result = document.getElementById('cssResult');
+            const demo = document.getElementById('cssDemo');
+            
+            // Test Bootstrap classes
+            demo.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Bootstrap Alert Test
+                </div>
+                <table class="table table-striped table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Header 1</th>
+                            <th>Header 2</th>
+                            <th>Header 3</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Cell 1</td>
+                            <td>Cell 2</td>
+                            <td><span class="badge bg-success">Badge Test</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+            
+            // Check if styles are applied
+            const table = demo.querySelector('table');
+            const computedStyle = window.getComputedStyle(table);
+            
+            result.textContent = `CSS Test Results:
+✅ Bootstrap CSS loaded: ${computedStyle.borderCollapse === 'collapse' ? 'YES' : 'NO'}
+✅ Table styling applied: ${computedStyle.marginBottom !== '0px' ? 'YES' : 'NO'}
+✅ Font Awesome icons: ${getComputedStyle(demo.querySelector('i')).fontFamily.includes('Font Awesome') ? 'YES' : 'NO'}
+✅ Alert styling: ${getComputedStyle(demo.querySelector('.alert')).padding !== '0px' ? 'YES' : 'NO'}`;
+        }
+        
+        async function testAPI() {
+            const result = document.getElementById('apiResult');
+            try {
+                result.textContent = 'Fetching API data...';
+                
+                const response = await fetch('/api/custom-gtt/orders');
+                const data = await response.json();
+                apiData = data;
+                
+                result.textContent = `API Test Results:
+✅ Status: ${response.status}
+✅ Content-Type: ${response.headers.get('content-type')}
+✅ Data type: ${typeof data}
+✅ Has records: ${data.records ? 'YES' : 'NO'}
+✅ Record count: ${data.records ? data.records.length : 0}
+✅ Sample data: ${JSON.stringify(data, null, 2).substring(0, 300)}...`;
+                
+            } catch (error) {
+                result.textContent = `❌ API Error: ${error.message}`;
+            }
+        }
+        
+        function createExactTable() {
+            const container = document.getElementById('exactTableContainer');
+            
+            // Create the exact same table structure as the main page
+            container.innerHTML = `
+                <div class="d-flex justify-content-between px-3 py-2 border-bottom bg-light">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="selectAllOrdersMain">
+                        <label class="custom-control-label" for="selectAllOrdersMain">Select All</label>
+                        <span class="ms-2 badge bg-primary" id="selectedCount">0</span> selected
+                    </div>
+                    <div class="text-muted" style="font-size: 0.875rem;">
+                        <strong class="me-3">Total Selected Amount: ₹<span id="totalAmount">0.00</span></strong>
+                        <small class="ms-3">Showing <span id="currentRecords">0</span> of <span id="totalRecords">0</span> orders</small>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-compact" id="customGttTable">
+                        <thead>
+                            <tr>
+                                <th width="30px"><input type="checkbox" id="selectAllOrders"></th>
+                                <th>Symbol</th>
+                                <th>Company</th>
+                                <th>Exchange</th>
+                                <th>Type</th>
+                                <th>Trigger</th>
+                                <th>Last Price</th>
+                                <th>Quantity</th>
+                                <th>Amount</th>
+                                <th>Notes</th>
+                                <th>Kite Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customGttTableBody">
+                            <!-- Table will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            console.log('Created exact table structure');
+            
+            // Check if table is visible
+            const table = document.getElementById('customGttTable');
+            const tbody = document.getElementById('customGttTableBody');
+            
+            console.log('Table element:', table);
+            console.log('Table body element:', tbody);
+            console.log('Table computed style:', window.getComputedStyle(table));
+        }
+        
+        function populateTable() {
+            const result = document.getElementById('populationResult');
+            
+            if (!apiData) {
+                result.textContent = '❌ No API data. Run "Fetch API Data" first.';
+                return;
+            }
+            
+            const tbody = document.getElementById('customGttTableBody');
+            if (!tbody) {
+                result.textContent = '❌ Table body not found. Create table first.';
+                return;
+            }
+            
+            // Use the actual updateOrdersTable function if available
+            if (typeof updateOrdersTable === 'function') {
+                console.log('Using updateOrdersTable function');
+                updateOrdersTable(apiData);
+                result.textContent = '✅ Called updateOrdersTable function with API data';
+            } else {
+                result.textContent = '❌ updateOrdersTable function not available';
+            }
+        }
+        
+        function populateWithTestData() {
+            const tbody = document.getElementById('customGttTableBody');
+            if (!tbody) {
+                document.getElementById('populationResult').textContent = '❌ Table body not found. Create table first.';
+                return;
+            }
+            
+            // Manually add test data
+            tbody.innerHTML = `
+                <tr style="background: lightblue; border: 2px solid blue;">
+                    <td style="border: 1px solid black;"><input type="checkbox"></td>
+                    <td style="border: 1px solid black; font-weight: bold;">TEST_SYMBOL</td>
+                    <td style="border: 1px solid black; font-weight: bold;">Test Company Ltd</td>
+                    <td style="border: 1px solid black; font-weight: bold;">NSE</td>
+                    <td style="border: 1px solid black; font-weight: bold;">BUY</td>
+                    <td style="border: 1px solid black; font-weight: bold;">2500.00</td>
+                    <td style="border: 1px solid black; font-weight: bold;">2480.00</td>
+                    <td style="border: 1px solid black; font-weight: bold;">10</td>
+                    <td style="border: 1px solid black; font-weight: bold;">₹24,800</td>
+                    <td style="border: 1px solid black; font-weight: bold;">Test Notes</td>
+                    <td style="border: 1px solid black; font-weight: bold;"><span class="badge bg-secondary">Saved</span></td>
+                    <td style="border: 1px solid black; font-weight: bold;">
+                        <button class="btn btn-sm btn-success">Place</button>
+                        <button class="btn btn-sm btn-primary ms-1">Edit</button>
+                    </td>
+                </tr>
+                <tr style="background: lightgreen; border: 2px solid green;">
+                    <td style="border: 1px solid black;"><input type="checkbox"></td>
+                    <td style="border: 1px solid black; font-weight: bold;">ANOTHER_TEST</td>
+                    <td style="border: 1px solid black; font-weight: bold;">Another Test Company</td>
+                    <td style="border: 1px solid black; font-weight: bold;">BSE</td>
+                    <td style="border: 1px solid black; font-weight: bold;">SELL</td>
+                    <td style="border: 1px solid black; font-weight: bold;">3200.00</td>
+                    <td style="border: 1px solid black; font-weight: bold;">3220.00</td>
+                    <td style="border: 1px solid black; font-weight: bold;">5</td>
+                    <td style="border: 1px solid black; font-weight: bold;">₹16,100</td>
+                    <td style="border: 1px solid black; font-weight: bold;">More test notes</td>
+                    <td style="border: 1px solid black; font-weight: bold;"><span class="badge bg-success">Placed</span></td>
+                    <td style="border: 1px solid black; font-weight: bold;">
+                        <button class="btn btn-sm btn-warning">Reset</button>
+                        <button class="btn btn-sm btn-danger ms-1">Delete</button>
+                    </td>
+                </tr>
+            `;
+            
+            document.getElementById('populationResult').textContent = '✅ Manually added test data to table\n' +
+                'If you can see the colored rows above, the table rendering works.\n' +
+                'If you cannot see them, there is a CSS or rendering issue.';
+        }
+        
+        function testJSFunctions() {
+            const result = document.getElementById('jsResult');
+            
+            let testResults = 'JavaScript Function Tests:\n';
+            
+            // Test if functions are available
+            testResults += `✅ updateOrdersTable: ${typeof updateOrdersTable === 'function' ? 'AVAILABLE' : 'NOT AVAILABLE'}\n`;
+            testResults += `✅ initializeSearch: ${typeof initializeSearch === 'function' ? 'AVAILABLE' : 'NOT AVAILABLE'}\n`;
+            testResults += `✅ safeSetTextContent: ${typeof safeSetTextContent === 'function' ? 'AVAILABLE' : 'NOT AVAILABLE'}\n`;
+            testResults += `✅ calculateAmount: ${typeof calculateAmount === 'function' ? 'AVAILABLE' : 'NOT AVAILABLE'}\n`;
+            testResults += `✅ formatCurrency: ${typeof formatCurrency === 'function' ? 'AVAILABLE' : 'NOT AVAILABLE'}\n`;
+            
+            // Test jQuery
+            testResults += `✅ jQuery: ${typeof $ === 'function' ? 'LOADED' : 'NOT LOADED'}\n`;
+            
+            // Test Bootstrap
+            testResults += `✅ Bootstrap: ${typeof bootstrap !== 'undefined' ? 'LOADED' : 'NOT LOADED'}\n`;
+            
+            result.textContent = testResults;
+        }
+        
+        // Auto-run some tests
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Direct debug page loaded');
+            setTimeout(() => {
+                testCSS();
+                testAPI();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

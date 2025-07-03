@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="container-fluid">
+    <div class="content-wrapper">
+        <!-- Main header with actions -->
+        <div class="page-header">
+            <div>
+                <h2>
+                    <i class="fas fa-chart-line"></i>GTT Orders Dashboard Test
+                </h2>
+            </div>
+        </div>
+
+        <!-- Controls bar for search, filters and length -->
+        <div class="controls-bar mb-3">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <!-- Search -->
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control" id="dashboardSearch" placeholder="Search table...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <!-- Transaction Type Filter -->
+                    <select class="form-select form-select-sm" id="transactionFilter">
+                        <option value="">All Types</option>
+                        <option value="BUY">BUY</option>
+                        <option value="SELL">SELL</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <!-- Status Filter -->
+                    <select class="form-select form-select-sm" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="triggered">Triggered</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="deleted">Deleted</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <!-- Exchange Filter -->
+                    <select class="form-select form-select-sm" id="exchangeFilter">
+                        <option value="">All Exchanges</option>
+                        <option value="NSE">NSE</option>
+                        <option value="BSE">BSE</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <!-- Length selector -->
+                    <select class="form-select form-select-sm" id="dashboardLength">
+                        <option value="10">10 rows</option>
+                        <option value="25" selected>25 rows</option>
+                        <option value="50">50 rows</option>
+                        <option value="100">100 rows</option>
+                        <option value="-1">All rows</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <!-- Table density and refresh controls -->
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="compactView" 
+                                onclick="setTableDensity('compact')" title="Compact View">
+                            <i class="fas fa-compress-alt"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="normalView" 
+                                onclick="setTableDensity('normal')" title="Normal View">
+                            <i class="fas fa-expand-alt"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTable" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main table -->
+        <div class="table-wrapper">
+            <div class="d-flex justify-content-end px-3 py-2 border-bottom bg-light">
+                <div class="text-muted" style="font-size: 0.875rem;">
+                    <strong class="me-3">Sum of BUY Amount: ₹<span id="sumBuyAmount">0.00</span></strong>
+                    <strong>Sum of SELL Amount: ₹<span id="sumSellAmount">0.00</span></strong>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-compact" id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Symbol</th>
+                            <th class="text-center">Exchange</th>
+                            <th class="text-center">Type</th>
+                            <th class="text-center">Trigger Values</th>
+                            <th class="text-center">Last Price</th>
+                            <th class="text-center">Transaction</th>
+                            <th class="text-center">Quantity</th>
+                            <th class="text-center">Amount</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-transaction="BUY" data-status="active" data-exchange="NSE">
+                            <td class="text-center">KPITTECH</td>
+                            <td class="text-center">NSE</td>
+                            <td class="text-center">single</td>
+                            <td class="text-center">1000</td>
+                            <td class="text-end">1249.00</td>
+                            <td class="text-center">
+                                <span class="badge bg-success">BUY</span>
+                            </td>
+                            <td class="text-end">20</td>
+                            <td class="text-end amount-cell" data-amount="24980.00">₹24,980.00</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">active</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr data-transaction="SELL" data-status="active" data-exchange="BSE">
+                            <td class="text-center">PRINCEPIPE</td>
+                            <td class="text-center">BSE</td>
+                            <td class="text-center">single</td>
+                            <td class="text-center">620</td>
+                            <td class="text-end">543.05</td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">SELL</span>
+                            </td>
+                            <td class="text-end">139</td>
+                            <td class="text-end amount-cell" data-amount="75483.95">₹75,483.95</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">active</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr data-transaction="BUY" data-status="triggered" data-exchange="NSE">
+                            <td class="text-center">GAEL</td>
+                            <td class="text-center">NSE</td>
+                            <td class="text-center">single</td>
+                            <td class="text-center">100</td>
+                            <td class="text-end">110.51</td>
+                            <td class="text-center">
+                                <span class="badge bg-success">BUY</span>
+                            </td>
+                            <td class="text-end">100</td>
+                            <td class="text-end amount-cell" data-amount="11051.00">₹11,051.00</td>
+                            <td class="text-center">
+                                <span class="badge bg-success">triggered</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/bootstrap.bundle.min.js"></script>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

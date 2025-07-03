@@ -60,45 +60,74 @@ function initializeSearch(options = {}) {
 
     // Function to fetch data with search
     function fetchData() {
+        console.log('[search.js] Fetching data...');
         const searchValue = searchInput.value.trim();
         const params = new URLSearchParams();
 
         // Add search parameter
         if (searchValue) {
             params.append('search', searchValue);
+            console.log('[search.js] Added search param:', searchValue);
         }
 
         // Add additional parameters
-        Object.entries(additionalParams).forEach(([key, value]) => {
-            if (typeof value === 'function') {
-                const paramValue = value();
-                if (paramValue) params.append(key, paramValue);
-            } else if (value) {
-                params.append(key, value);
-            }
-        });
+        if (additionalParams && typeof additionalParams === 'object') {
+            Object.entries(additionalParams).forEach(([key, value]) => {
+                if (typeof value === 'function') {
+                    const paramValue = value();
+                    if (paramValue) {
+                        params.append(key, paramValue);
+                        console.log(`[search.js] Added param from function: ${key}=${paramValue}`);
+                    }
+                } else if (value) {
+                    params.append(key, value);
+                    console.log(`[search.js] Added param directly: ${key}=${value}`);
+                }
+            });
+        }
 
         // Add records per page if available
         const recordsPerPage = document.getElementById('recordsPerPage');
         if (recordsPerPage) {
             params.append('per_page', recordsPerPage.value);
+            console.log(`[search.js] Added per_page param: ${recordsPerPage.value}`);
+        }
+
+        // Add page parameter if needed
+        const currentPage = document.getElementById('currentPage');
+        if (currentPage) {
+            const pageNum = currentPage.textContent || "1";
+            params.append('page', pageNum);
+            console.log(`[search.js] Added page param: ${pageNum}`);
         }
 
         // Show loading state
         const table = document.getElementById(tableId);
         if (table) {
             table.classList.add('loading');
+            console.log('[search.js] Added loading class to table');
+        } else {
+            console.error('[search.js] Table element not found:', tableId);
         }
 
+        const apiUrl = `${fetchUrl}?${params.toString()}`;
+        console.log('[search.js] Fetching data from:', apiUrl);
+
         // Fetch data from server
-        fetch(`${fetchUrl}?${params.toString()}`)
+        fetch(apiUrl)
             .then(response => {
+                console.log('[search.js] Fetch response status:', response.status);
+                console.log('[search.js] Fetch response headers:', response.headers);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
+                console.log('[search.js] Received data:', data);
+                console.log('[search.js] Data type:', typeof data);
+                console.log('[search.js] Data keys:', data ? Object.keys(data) : 'null/undefined');
+                
                 if (data.error) {
                     showError(data.error);
                     return;
@@ -106,7 +135,11 @@ function initializeSearch(options = {}) {
 
                 // Update table via callback
                 if (updateCallback) {
+                    console.log('[search.js] Calling updateCallback with data');
                     updateCallback(data);
+                    console.log('[search.js] updateCallback completed');
+                } else {
+                    console.error('[search.js] No updateCallback provided!');
                 }
 
                 // Update records info if elements exist
@@ -115,11 +148,15 @@ function initializeSearch(options = {}) {
                 if (currentRecords && totalRecords) {
                     currentRecords.textContent = data.records.length;
                     totalRecords.textContent = data.total_count;
+                    console.log('[search.js] Updated record counts');
+                } else {
+                    console.warn('[search.js] Record count elements not found');
                 }
 
                 // Update URL to make it bookmarkable
                 const newUrl = `${window.location.pathname}?${params.toString()}`;
                 history.pushState({}, '', newUrl);
+                console.log('[search.js] Updated URL:', newUrl);
             })
             .catch(error => {
                 console.error('Error fetching data:', error);
@@ -157,5 +194,3 @@ function initializeSearch(options = {}) {
     // Return fetch function for external use
     return fetchData;
 }
-
-<link rel="stylesheet" href="{{ url_for('static', filename='css/loading.css') }}">

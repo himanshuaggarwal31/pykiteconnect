@@ -1,12 +1,3 @@
-Here’s an example of a well-structured `.github/copilot-instructions.md` file you can include in your GitHub repository. This file provides **Copilot with clear instructions** on how to assist you across the project.
-
-> ✅ This is useful if you're using **GitHub Copilot for Teams/Enterprise** or want a consistent Copilot behavior across your repo.
-
----
-
-### ✅ Example: `.github/copilot-instructions.md`
-
-```markdown
 # Copilot Instructions
 
 ## 🧠 General Behavior
@@ -14,6 +5,7 @@ Here’s an example of a well-structured `.github/copilot-instructions.md` file 
 - Do not assume missing details — ask or leave TODOs if unsure.
 - Prioritize simplicity, clarity, and readability of code.
 - Use only the technologies, libraries, and patterns already used in this project unless explicitly told to add something new.
+- Always specify the complete file path as to where to make changes, since the code base is huge.
 
 ## 🧹 Code Style
 - Match the existing code style and formatting (indentation, naming, etc.).
@@ -54,4 +46,3 @@ This will ensure GitHub Copilot (and even human contributors) follow consistent 
 ---
 
 Would you like a version for a **JavaScript/TypeScript** project or a **full-stack app**?
-```

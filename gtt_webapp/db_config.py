@@ -32,9 +32,11 @@ else:
     }
 
 def get_connection():
-    """Get a database connection using the current app's connection or create a new one"""
-    if current_app and 'oracle_connection' in current_app.config:
-        return current_app.config['oracle_connection']
-    return oracledb.connect(**configuration['db_config'])
+    """Get a fresh database connection"""
+    try:
+        return oracledb.connect(**configuration['db_config'])
+    except oracledb.Error as e:
+        print(f"Database connection error: {e}")
+        raise
 
 # Access the folders or config using config['log_folder'], etc.

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Diagnostic Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .debug-box { 
+            margin: 15px 0; 
+            padding: 15px; 
+            border: 2px solid #007bff; 
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        .result { 
+            background: #fff; 
+            padding: 10px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        .test-table {
+            border: 3px solid red !important;
+        }
+        .test-table thead {
+            background: yellow !important;
+        }
+        .test-table tbody {
+            background: lightblue !important;
+        }
+    </style>
+</head>
+<body>
+    <h1><i class="fas fa-bug"></i> Final Diagnostic Test</h1>
+    
+    <div class="debug-box">
+        <h3>Step 1: Test API</h3>
+        <button class="btn btn-primary" onclick="testAPI()">Test API Call</button>
+        <div id="apiStatus" class="result"></div>
+    </div>
+    
+    <div class="debug-box">
+        <h3>Step 2: CSS & Bootstrap Test</h3>
+        <button class="btn btn-success" onclick="testBootstrap()">Test Bootstrap Classes</button>
+        <div id="bootstrapTest" class="mt-3">
+            <!-- Bootstrap test content will go here -->
+        </div>
+    </div>
+    
+    <div class="debug-box">
+        <h3>Step 3: Create Visible Table</h3>
+        <button class="btn btn-warning" onclick="createVisibleTable()">Create Highly Visible Table</button>
+        <div id="visibleTableContainer" class="mt-3"></div>
+    </div>
+    
+    <div class="debug-box">
+        <h3>Step 4: Inspect Main Page</h3>
+        <button class="btn btn-info" onclick="inspectMainPage()">Open Main Page & Inspect</button>
+        <div id="inspectionResult" class="result"></div>
+    </div>
+    
+    <div class="debug-box">
+        <h3>Step 5: Manual Table Population</h3>
+        <button class="btn btn-secondary" onclick="manualPopulation()">Manually Populate Main Page Table</button>
+        <div id="manualResult" class="result"></div>
+    </div>
+    
+    <script>
+        let apiData = null;
+        let mainPageWindow = null;
+        
+        async function testAPI() {
+            const status = document.getElementById('apiStatus');
+            try {
+                status.textContent = 'Testing API...';
+                
+                const response = await fetch('/api/custom-gtt/orders');
+                const data = await response.json();
+                apiData = data;
+                
+                status.textContent = `✅ API Status: ${response.status}\n` +
+                    `✅ Response Type: ${typeof data}\n` +
+                    `✅ Has Records: ${data.records ? 'YES' : 'NO'}\n` +
+                    `✅ Record Count: ${data.records ? data.records.length : 0}\n` +
+                    `✅ Data Structure: ${JSON.stringify(data, null, 2).substring(0, 500)}...`;
+                    
+            } catch (error) {
+                status.textContent = `❌ API Error: ${error.message}`;
+            }
+        }
+        
+        function testBootstrap() {
+            const container = document.getElementById('bootstrapTest');
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Bootstrap Alert Test
+                </div>
+                <table class="table table-striped table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Bootstrap</th>
+                            <th>Table</th>
+                            <th>Test</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Row 1</td>
+                            <td>Data</td>
+                            <td><span class="badge bg-success">Working</span></td>
+                        </tr>
+                        <tr>
+                            <td>Row 2</td>
+                            <td>More Data</td>
+                            <td><span class="badge bg-primary">Also Working</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="text-success">✅ If you can see this table with styling, Bootstrap is working!</p>
+            `;
+        }
+        
+        function createVisibleTable() {
+            const container = document.getElementById('visibleTableContainer');
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-hover test-table" id="highVisibilityTable">
+                        <thead>
+                            <tr>
+                                <th style="background: red; color: white;">Select</th>
+                                <th style="background: green; color: white;">Symbol</th>
+                                <th style="background: blue; color: white;">Company</th>
+                                <th style="background: orange; color: white;">Exchange</th>
+                                <th style="background: purple; color: white;">Type</th>
+                                <th style="background: brown; color: white;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="highVisibilityTableBody">
+                            <tr style="background: yellow;">
+                                <td style="border: 2px solid red;"><input type="checkbox"></td>
+                                <td style="border: 2px solid red; font-weight: bold;">VISIBLE_SYMBOL</td>
+                                <td style="border: 2px solid red; font-weight: bold;">TEST COMPANY</td>
+                                <td style="border: 2px solid red; font-weight: bold;">NSE</td>
+                                <td style="border: 2px solid red; font-weight: bold;">BUY</td>
+                                <td style="border: 2px solid red;">
+                                    <button class="btn btn-danger btn-sm">VISIBLE BUTTON</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-danger" style="font-weight: bold; font-size: 18px;">
+                    ⚠️ If you CAN'T see the colorful table above, there's a CSS loading issue!
+                </p>
+            `;
+        }
+        
+        function inspectMainPage() {
+            const result = document.getElementById('inspectionResult');
+            result.textContent = 'Opening main page for inspection...';
+            
+            // Open main page in new window
+            mainPageWindow = window.open('/custom-gtt', 'mainPage', 'width=1200,height=800');
+            
+            setTimeout(() => {
+                try {
+                    const mainDoc = mainPageWindow.document;
+                    const table = mainDoc.getElementById('customGttTable');
+                    const tbody = mainDoc.getElementById('customGttTableBody');
+                    
+                    let inspection = '=== MAIN PAGE INSPECTION ===\n';
+                    inspection += `✅ Main page loaded: ${mainDoc.readyState}\n`;
+                    inspection += `✅ Table found: ${table ? 'YES' : 'NO'}\n`;
+                    inspection += `✅ Table body found: ${tbody ? 'YES' : 'NO'}\n`;
+                    
+                    if (table) {
+                        const computedStyle = mainPageWindow.getComputedStyle(table);
+                        inspection += `📊 Table display: ${computedStyle.display}\n`;
+                        inspection += `📊 Table visibility: ${computedStyle.visibility}\n`;
+                        inspection += `📊 Table height: ${computedStyle.height}\n`;
+                        inspection += `📊 Table position: ${computedStyle.position}\n`;
+                        inspection += `📊 Table z-index: ${computedStyle.zIndex}\n`;
+                    }
+                    
+                    if (tbody) {
+                        inspection += `📊 Tbody innerHTML length: ${tbody.innerHTML.length}\n`;
+                        inspection += `📊 Tbody children count: ${tbody.children.length}\n`;
+                        inspection += `📊 Tbody content preview: ${tbody.innerHTML.substring(0, 200)}...\n`;
+                    }
+                    
+                    // Check for JavaScript console errors
+                    inspection += `🔍 Checking for console errors...\n`;
+                    
+                    result.textContent = inspection;
+                    
+                } catch (error) {
+                    result.textContent = `❌ Inspection failed: ${error.message}`;
+                }
+            }, 3000);
+        }
+        
+        async function manualPopulation() {
+            const result = document.getElementById('manualResult');
+            
+            if (!mainPageWindow) {
+                result.textContent = '❌ Main page not open. Run "Inspect Main Page" first.';
+                return;
+            }
+            
+            if (!apiData) {
+                result.textContent = '⏳ Getting API data first...';
+                await testAPI();
+            }
+            
+            try {
+                const mainDoc = mainPageWindow.document;
+                const tbody = mainDoc.getElementById('customGttTableBody');
+                
+                if (!tbody) {
+                    result.textContent = '❌ Table body not found in main page';
+                    return;
+                }
+                
+                // Manually add a highly visible row
+                tbody.innerHTML = `
+                    <tr style="background: lime; border: 3px solid red; height: 50px;">
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;"><input type="checkbox" style="width: 20px; height: 20px;"></td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold; color: red;">MANUAL_TEST</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold; color: blue;">MANUAL COMPANY</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">NSE</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">BUY</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">2500</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">2480</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">10</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">₹24,800</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">MANUAL TEST</td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;"><span class="badge bg-danger" style="font-size: 14px;">MANUAL</span></td>
+                        <td style="border: 2px solid black; font-size: 16px; font-weight: bold;">
+                            <button class="btn btn-warning btn-sm" style="font-weight: bold;">MANUAL BUTTON</button>
+                        </td>
+                    </tr>
+                `;
+                
+                result.textContent = '✅ Manually added a highly visible row to the main page table.\n' +
+                    'Check the main page window to see if the row is visible.\n' +
+                    'If you CAN see it: The table works, but the API/JS population is failing.\n' +
+                    'If you CANNOT see it: There\'s a fundamental CSS/rendering issue.';
+                    
+            } catch (error) {
+                result.textContent = `❌ Manual population failed: ${error.message}`;
+            }
+        }
+        
+        // Auto-run first test
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testAPI, 500);
+        });
+    </script>
+</body>
+</html>

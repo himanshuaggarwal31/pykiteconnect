@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+
+{% block title %}Custom GTT Orders{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom-gtt.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared-table.css') }}">
+{% endblock %}
+        console.log('Modal HTML:', modalElement.outerHTML.substring(0, 200) + '...');
+        
+        // Check the add new order button
+        const addNewOrderBtn = document.getElementById('addNewOrderBtn');
+        if (addNewOrderBtn) {
+            console.log('Add New Order button found:', addNewOrderBtn);
+            console.log('Checking event listeners...');
+            
+            // Add a test click handler that we know works
+            addNewOrderBtn.addEventListener('click', function() {
+                console.log('Add New Order button clicked from diagnostic handler');
+                alert('Add New Order button clicked from diagnostic handler');
+                
+                // Try to show the modal directly
+                try {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const bsModal = new bootstrap.Modal(modalElement);
+                        bsModal.show();
+                        console.log('Modal show() called directly from diagnostic handler');
+                    } else {
+                        console.error('Bootstrap Modal not available for direct call');
+                    }
+                } catch (err) {
+                    console.error('Error showing modal directly:', err);
+                }
+            });
+            
+            console.log('Added diagnostic click handler to Add New Order button');
+        } else {
+            console.error('Add New Order button not found!');
+        }
+        
+        return true;
+    }
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Main header with actions -->
+    <div class="page-header">
+        <div>
+            <h2>
+                <i class="fas fa-layer-group"></i>Custom GTT Orders
+            </h2>
+            <div class="text-muted small">Create and save GTT orders locally before sending them to Kite</div>
+        </div>
+        <div class="btn-toolbar">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="addNewOrderBtn">
+                <i class="fas fa-plus me-1"></i>Add New Order
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="placeAllOrdersBtn">
+                <i class="fas fa-upload me-1"></i>Place Selected Orders on Kite
+            </button>
+        </div>
+    </div>
+
+    <!-- Controls bar for search and length -->
+    <div class="controls-bar">
+        <div class="control-group">
+            <!-- Search -->
+            <div class="input-group input-group-sm search-input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search orders...">
+            </div>
+            <!-- Length selector -->
+            <select class="form-select form-select-sm compact-select" id="recordsPerPage">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="-1">All</option>
+            </select>
+            <!-- Filters -->
+            <select class="form-select form-select-sm compact-select" id="orderTypeFilter">
+                <option value="">All Types</option>
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+            </select>
+            <select class="form-select form-select-sm compact-select" id="kiteStatusFilter">
+                <option value="">All Status</option>
+                <option value="not_placed">Not Placed</option>
+                <option value="placed">Placed</option>
+            </select>
+        </div>
+        <div class="records-info">
+            Showing <span id="currentRecords">0</span> of <span id="totalRecords">0</span> orders
+        </div>
+    </div>
+
+    {% if error and error != 'page' and error != "'page'" %}
+    <div class="alert alert-warning py-2" style="font-size: 0.875rem;">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Main table -->
+    <div class="table-wrapper">
+        <div class="d-flex justify-content-end px-3 py-2 border-bottom bg-light">
+            <div class="text-muted" style="font-size: 0.875rem;">
+                <strong>Total Amount: ₹<span id="totalAmount">0.00</span></strong>
+                <span class="ms-3">Selected: <span id="selectedCount">0</span></span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="customGttTable">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAllOrders" class="form-check-input"></th>
+                        <th>Symbol</th>
+                        <th>Exchange</th>
+                        <th>Type</th>
+                        <th>Trigger Type</th>
+                        <th>Trigger Values</th>
+                        <th>Last Price</th>
+                        <th>Quantity</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customGttTableBody">
+                    <!-- Orders will be loaded here via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+            <div class="pagination-info text-muted small">
+                Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary" id="prevPageBtn" disabled>
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="nextPageBtn" disabled>
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Order Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderModalTitle">Add New Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="orderForm">
+                    <input type="hidden" id="orderId" name="id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Symbol *</label>
+                                <input type="text" class="form-control" id="symbol" name="symbol" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Company Name</label>
+                                <input type="text" class="form-control" id="companyName" name="company_name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Exchange *</label>
+                                <select class="form-select" id="exchange" name="exchange" required>
+                                    <option value="NSE">NSE</option>
+                                    <option value="BSE">BSE</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Type *</label>
+                                <select class="form-select" id="orderType" name="order_type" required>
+                                    <option value="BUY">BUY</option>
+                                    <option value="SELL">SELL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Trigger Type *</label>
+                                <select class="form-select" id="triggerType" name="trigger_type" required>
+                                    <option value="single">Single (Simple)</option>
+                                    <option value="two-leg">Two-Leg (OCO)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Last Price</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="lastPrice" name="last_price" step="0.01">
+                                    <button class="btn btn-outline-secondary" type="button" id="fetchPriceBtn">Fetch</button>
+                                </div>
+                                <div class="form-text">If empty, current market price will be used when placing the order</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Quantity *</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Single trigger fields -->
+                    <div id="singleTriggerFields">
+                        <div class="mb-3">
+                            <label class="form-label">Trigger Price *</label>
+                            <input type="number" class="form-control" id="triggerPrice" name="trigger_price" step="0.01">
+                            <div class="form-text" id="triggerPriceHelp">
+                                For BUY orders, trigger price should be lower than current market price. 
+                                For SELL orders, trigger price should be higher than current market price.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Two-leg trigger fields -->
+                    <div id="twoLegTriggerFields" class="d-none">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Stop Loss (Lower Limit) *</label>
+                                    <input type="number" class="form-control" id="stopLoss" name="stop_loss" step="0.01">
+                                    <div class="form-text">Price below which the SELL order will trigger</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Target Price (Upper Limit) *</label>
+                                    <input type="number" class="form-control" id="targetPrice" name="target_price" step="0.01">
+                                    <div class="form-text">Price above which the SELL order will trigger</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>For SELL orders with two-leg triggers, the stop loss must be below the last price and the target price must be above the last price.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 mt-3">
+                        <div class="form-text">
+                            <strong>Order Amount: ₹<span id="orderAmount">0.00</span></strong>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveOrderBtn">Save Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationTitle">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmationMessage">
+                Are you sure you want to proceed?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmActionBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+<script>
+    // Debug function to check all available bootstrap components
+    function checkBootstrap() {
+        console.log('Checking Bootstrap...');
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap not loaded at all');
+            return false;
+        }
+        
+        console.log('Bootstrap available components:', Object.keys(bootstrap));
+        console.log('Bootstrap Modal available:', typeof bootstrap.Modal !== 'undefined');
+        return true;
+    }
+    
+    // Debug function to check all modal elements
+    function checkModalElements() {
+        console.log('Checking modal elements...');
+        const modalElement = document.getElementById('orderModal');
+        if (!modalElement) {
+            console.error('Modal element not found!');
+            // List all elements with class 'modal'
+            const allModals = document.querySelectorAll('.modal');
+            console.log('Found elements with .modal class:', allModals.length);
+            allModals.forEach((modal, i) => console.log(`Modal ${i}:`, modal.id));
+            return false;
+        }
+        
+        console.log('Modal element found:', modalElement);
+        console.log('Modal HTML:', modalElement.outerHTML.substring(0, 200) + '...');
+        return true;
+    }
+    
+    // Debug function to check API endpoints
+    function checkApiEndpoints() {
+        console.log('Checking API endpoints...');
+        fetch('/debug/routes')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Available routes:', data.routes);
+                // Check if our endpoint exists
+                const hasOrdersEndpoint = data.routes.some(route => 
+                    route.rule.includes('/api/custom-gtt/orders'));
+                console.log('Has orders endpoint:', hasOrdersEndpoint);
+                
+                // Test our orders API directly
+                return fetch('/api/custom-gtt/orders');
+            })
+            .then(response => {
+                console.log('Orders API response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Orders API response data:', data);
+            })
+            .catch(error => {
+                console.error('API check error:', error);
+            });
+    }
+</script>
+        console.log('Modal HTML:', modalElement.outerHTML.substring(0, 200) + '...');
+        return true;
+    }
+    
+    // Debug function to check API endpoints
+    function checkApiEndpoints() {
+        console.log('Checking API endpoints...');
+        fetch('/debug/routes')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Available routes:', data.routes);
+                // Check if our endpoint exists
+                const hasOrdersEndpoint = data.routes.some(route => 
+                    route.rule.includes('/api/custom-gtt/orders'));
+                console.log('Has orders endpoint:', hasOrdersEndpoint);
+                
+                // Test our orders API directly
+                return fetch('/api/custom-gtt/orders');
+            })
+            .then(response => {
+                console.log('Orders API response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Orders API response data:', data);
+            })
+            .catch(error => {
+                console.error('API check error:', error);
+            });
+    }
+</script>
+
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+<!-- Make sure Bootstrap JS is fully loaded before initializing our custom JS -->
+<script>
+    console.log('Initial page load script running...');
+    
+    // Run diagnostics after a short delay to ensure the DOM is fully loaded
+    setTimeout(() => {
+        console.log('Running diagnostics...');
+        checkBootstrap();
+        checkModalElements();
+        checkApiEndpoints();
+    }, 1000);
+    
+    // Check if Bootstrap is loaded
+    if (typeof bootstrap === 'undefined' || typeof bootstrap.Modal === 'undefined') {
+        console.error('Bootstrap not loaded yet, loading it explicitly...');
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
+        script.onload = function() {
+            console.log('Bootstrap loaded dynamically');
+            // Now load our custom JS
+            const customScript = document.createElement('script');
+            customScript.src = "{{ url_for('static', filename='js/custom-gtt.js') }}";
+            document.body.appendChild(customScript);
+            
+            // Re-run diagnostics after loading
+            setTimeout(() => {
+                console.log('Re-running diagnostics after loading Bootstrap and custom JS...');
+                checkBootstrap();
+                checkModalElements();
+            }, 1000);
+        };
+        document.body.appendChild(script);
+    } else {
+        console.log('Bootstrap already loaded, loading custom JS directly');
+        // If Bootstrap is already loaded, load our custom JS directly
+        const customScript = document.createElement('script');
+        customScript.src = "{{ url_for('static', filename='js/custom-gtt.js') }}";
+        document.body.appendChild(customScript);
+    }
+</script>
+{% endblock %}

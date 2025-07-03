@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test GTT Fixes</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .test-button { margin: 10px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .test-button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>GTT Webapp Fix Testing</h1>
+    
+    <div class="test-section">
+        <h2>Issues Fixed:</h2>
+        <ul>
+            <li>✅ JavaScript error "Cannot read properties of undefined (reading 'entries')" - Fixed in multiple files</li>
+            <li>✅ Delete button not working - Fixed confirmation modal element ID mismatch</li>
+            <li>✅ Two-leg trigger type not showing stop loss/target fields - Fixed display toggle logic</li>
+            <li>✅ Flash of content on page load - Added opacity transition</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Links:</h2>
+        <p><a href="http://127.0.0.1:5000/custom-gtt/" target="_blank">🔗 Main Custom GTT Page</a></p>
+        <p><a href="http://127.0.0.1:5000/test" target="_blank">🔗 API Test Page</a></p>
+        <p><a href="http://127.0.0.1:5000/" target="_blank">🔗 Dashboard</a></p>
+    </div>
+    
+    <div class="test-section">
+        <h2>Manual Tests to Perform:</h2>
+        <ol>
+            <li><strong>Page Load Test:</strong>
+                <ul>
+                    <li>Open the Custom GTT page</li>
+                    <li>Check if page loads without flash of error messages</li>
+                    <li>Verify no JavaScript errors in console</li>
+                </ul>
+            </li>
+            
+            <li><strong>Add Order Modal Test:</strong>
+                <ul>
+                    <li>Click "Add New Order" button</li>
+                    <li>Verify modal opens correctly</li>
+                    <li>Check that "Single" trigger type shows only trigger price field</li>
+                    <li>Change to "Two-Leg" trigger type</li>
+                    <li>Verify it shows Target Price and Stop Loss fields</li>
+                </ul>
+            </li>
+            
+            <li><strong>Delete Button Test:</strong>
+                <ul>
+                    <li>Add a test order first</li>
+                    <li>Click delete button for any order</li>
+                    <li>Verify confirmation modal appears</li>
+                    <li>Click "Confirm" to test deletion</li>
+                </ul>
+            </li>
+            
+            <li><strong>Form Validation Test:</strong>
+                <ul>
+                    <li>Try to save order with empty fields</li>
+                    <li>Verify appropriate validation messages appear</li>
+                    <li>Fill valid data and save</li>
+                    <li>Verify success message and table refresh</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>Key JavaScript Functions Fixed:</h2>
+        <ul>
+            <li><code>response.headers.entries()</code> - Added null checks</li>
+            <li><code>Object.entries()</code> - Added object validation</li>
+            <li><code>FormData.entries()</code> - Added FormData validation</li>
+            <li><code>showConfirmationModal()</code> - Fixed element ID reference</li>
+            <li><code>toggleTriggerFields()</code> - Fixed display style logic</li>
+            <li><code>updateOrdersTable()</code> - Added comprehensive safety checks</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>Quick JavaScript Console Tests:</h2>
+        <p>Open browser console and run these commands on the Custom GTT page:</p>
+        <pre>
+// Test trigger type toggle
+toggleTriggerFields('single');  // Should show only trigger price
+toggleTriggerFields('two-leg'); // Should show target + stop loss
+
+// Test modal opening
+showOrderModal(); // Should open add order modal
+
+// Test form validation
+validateOrderForm(); // Should return false if form is empty
+        </pre>
+    </div>
+    
+    <script>
+        // Simple test runner
+        function runBasicTests() {
+            console.log('Running basic JavaScript tests...');
+            
+            // Test 1: Check if global functions exist
+            const functionsToCheck = ['toggleTriggerFields', 'showOrderModal', 'validateOrderForm', 'updateOrdersTable'];
+            functionsToCheck.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    console.log('✅', funcName, 'function exists');
+                } else {
+                    console.log('❌', funcName, 'function missing');
+                }
+            });
+            
+            // Test 2: Check if Bootstrap is loaded
+            if (typeof bootstrap !== 'undefined') {
+                console.log('✅ Bootstrap loaded');
+            } else {
+                console.log('❌ Bootstrap not loaded');
+            }
+            
+            // Test 3: Check if required DOM elements exist
+            const elementsToCheck = ['orderModal', 'confirmationModal', 'triggerType', 'singleTriggerFields', 'twoLegTriggerFields'];
+            elementsToCheck.forEach(id => {
+                if (document.getElementById(id)) {
+                    console.log('✅ Element', id, 'exists');
+                } else {
+                    console.log('❌ Element', id, 'missing');
+                }
+            });
+        }
+        
+        // Auto-run tests when this page is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Test page loaded. To run tests on the GTT page, open it in another tab and run runBasicTests() in console.');
+        });
+    </script>
+</body>
+</html>

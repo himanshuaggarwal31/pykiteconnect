@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Table Population Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .console-output { background: #f8f9fa; padding: 10px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Table Population Test</h1>
+    
+    <div class="debug-section">
+        <h3>1. Test API Direct</h3>
+        <button class="btn btn-primary" onclick="testAPIDirect()">Test API</button>
+        <div id="apiResult" class="console-output mt-3"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>2. Create Simple Table</h3>
+        <button class="btn btn-success" onclick="createSimpleTable()">Create Table</button>
+        <div id="tableContainer" class="mt-3"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h3>3. Test Table Population</h3>
+        <button class="btn btn-warning" onclick="populateTable()">Populate with Test Data</button>
+        <button class="btn btn-info ms-2" onclick="populateWithAPI()">Populate with API Data</button>
+    </div>
+    
+    <div class="debug-section">
+        <h3>4. Test Main Page Function</h3>
+        <button class="btn btn-secondary" onclick="testMainPageFunction()">Test updateOrdersTable Function</button>
+        <div id="functionResult" class="console-output mt-3"></div>
+    </div>
+    
+    <script>
+        let apiData = null;
+        
+        async function testAPIDirect() {
+            const resultDiv = document.getElementById('apiResult');
+            try {
+                resultDiv.textContent = 'Fetching...';
+                const response = await fetch('/api/custom-gtt/orders');
+                const data = await response.json();
+                apiData = data;
+                
+                resultDiv.textContent = `Status: ${response.status}\n` +
+                    `Data: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        function createSimpleTable() {
+            const container = document.getElementById('tableContainer');
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-hover" id="testTable">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Symbol</th>
+                                <th>Company</th>
+                                <th>Exchange</th>
+                                <th>Type</th>
+                                <th>Trigger</th>
+                                <th>Last Price</th>
+                                <th>Quantity</th>
+                                <th>Amount</th>
+                                <th>Notes</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="testTableBody">
+                            <!-- Will be populated -->
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        function populateTable() {
+            const tbody = document.getElementById('testTableBody');
+            if (!tbody) {
+                alert('Create table first!');
+                return;
+            }
+            
+            const testData = {
+                records: [
+                    {
+                        id: 1,
+                        symbol: 'RELIANCE',
+                        company_name: 'Reliance Industries Ltd',
+                        exchange: 'NSE',
+                        order_type: 'BUY',
+                        trigger_price: 2500,
+                        last_price: 2480,
+                        quantity: 10,
+                        notes: 'Test order',
+                        placed_on_kite: false
+                    },
+                    {
+                        id: 2,
+                        symbol: 'TCS',
+                        company_name: 'Tata Consultancy Services',
+                        exchange: 'NSE',
+                        order_type: 'SELL',
+                        trigger_price: 3200,
+                        last_price: 3220,
+                        quantity: 5,
+                        notes: 'Another test',
+                        placed_on_kite: true
+                    }
+                ]
+            };
+            
+            tbody.innerHTML = '';
+            testData.records.forEach(order => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="checkbox" ${order.placed_on_kite ? 'disabled' : ''}></td>
+                    <td>${order.symbol}</td>
+                    <td>${order.company_name}</td>
+                    <td>${order.exchange}</td>
+                    <td>${order.order_type}</td>
+                    <td>${order.trigger_price}</td>
+                    <td>${order.last_price}</td>
+                    <td>${order.quantity}</td>
+                    <td>₹${(order.last_price * order.quantity).toLocaleString()}</td>
+                    <td>${order.notes}</td>
+                    <td><span class="badge ${order.placed_on_kite ? 'bg-success' : 'bg-secondary'}">${order.placed_on_kite ? 'Placed' : 'Saved'}</span></td>
+                    <td>
+                        ${!order.placed_on_kite ? 
+                            '<button class="btn btn-sm btn-success">Place</button>' : 
+                            '<button class="btn btn-sm btn-warning">Reset</button>'
+                        }
+                        <button class="btn btn-sm btn-danger ms-1">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            console.log('Populated table with test data');
+        }
+        
+        async function populateWithAPI() {
+            if (!apiData) {
+                await testAPIDirect();
+            }
+            
+            const tbody = document.getElementById('testTableBody');
+            if (!tbody) {
+                alert('Create table first!');
+                return;
+            }
+            
+            if (!apiData || !apiData.records) {
+                alert('No API data available!');
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            apiData.records.forEach(order => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="checkbox" ${order.placed_on_kite ? 'disabled' : ''}></td>
+                    <td>${order.symbol || 'N/A'}</td>
+                    <td>${order.company_name || ''}</td>
+                    <td>${order.exchange || 'NSE'}</td>
+                    <td>${order.order_type || 'N/A'}</td>
+                    <td>${order.trigger_price || order.trigger_values || 'N/A'}</td>
+                    <td>${order.last_price || 'N/A'}</td>
+                    <td>${order.quantity || 0}</td>
+                    <td>₹${order.amount || 0}</td>
+                    <td>${order.notes || ''}</td>
+                    <td><span class="badge ${order.placed_on_kite ? 'bg-success' : 'bg-secondary'}">${order.placed_on_kite ? 'Placed' : 'Saved'}</span></td>
+                    <td>
+                        ${!order.placed_on_kite ? 
+                            '<button class="btn btn-sm btn-success">Place</button>' : 
+                            '<button class="btn btn-sm btn-warning">Reset</button>'
+                        }
+                        <button class="btn btn-sm btn-danger ms-1">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            console.log('Populated table with API data');
+        }
+        
+        function testMainPageFunction() {
+            const resultDiv = document.getElementById('functionResult');
+            
+            // Test if we can access the main page's updateOrdersTable function
+            try {
+                if (typeof updateOrdersTable === 'function') {
+                    resultDiv.textContent = 'updateOrdersTable function is available in this context';
+                } else {
+                    resultDiv.textContent = 'updateOrdersTable function is NOT available in this context';
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error testing function: ${error.message}`;
+            }
+        }
+        
+        // Auto-run API test
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(testAPIDirect, 500);
+        });
+    </script>
+</body>
+</html>

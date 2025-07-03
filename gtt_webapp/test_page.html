@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>GTT API Test Page</h1>
+    
+    <button onclick="testBasicAPI()">Test Basic API</button>
+    <button onclick="testCustomGTTOrders()">Test Custom GTT Orders</button>
+    <button onclick="testSaveOrder()">Test Save Order</button>
+    <button onclick="testDiagnostics()">Test Diagnostics</button>
+    
+    <div id="results"></div>
+    
+    <script>
+        function addResult(title, success, message, data = null) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <h3>${title}: ${success ? '✅ SUCCESS' : '❌ FAILED'}</h3>
+                <p><strong>Message:</strong> ${message}</p>
+                ${data ? `<p><strong>Data:</strong> <pre>${JSON.stringify(data, null, 2)}</pre></p>` : ''}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function testBasicAPI() {
+            fetch('/api/test')
+                .then(response => response.json())
+                .then(data => {
+                    addResult('Basic API Test', true, 'API is responding correctly', data);
+                })
+                .catch(error => {
+                    addResult('Basic API Test', false, `Error: ${error.message}`);
+                });
+        }
+        
+        function testCustomGTTOrders() {
+            fetch('/api/custom-gtt/orders')
+                .then(response => response.json())
+                .then(data => {
+                    addResult('Custom GTT Orders', true, `Found ${data.records.length} orders`, data);
+                })
+                .catch(error => {
+                    addResult('Custom GTT Orders', false, `Error: ${error.message}`);
+                });
+        }
+        
+        function testSaveOrder() {
+            const testData = {
+                symbol: 'TEST' + Date.now(),
+                order_type: 'BUY',
+                trigger_type: 'single',
+                quantity: 1,
+                trigger_price: 100,
+                notes: 'Test order from API test page'
+            };
+            
+            fetch('/api/custom-gtt/save-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(testData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addResult('Save Order', true, `Order saved with ID: ${data.order_id}`, data);
+                    } else {
+                        addResult('Save Order', false, data.error || 'Unknown error', data);
+                    }
+                })
+                .catch(error => {
+                    addResult('Save Order', false, `Error: ${error.message}`);
+                });
+        }
+        
+        function testDiagnostics() {
+            fetch('/api/diagnostics')
+                .then(response => response.json())
+                .then(data => {
+                    const summary = data.summary;
+                    const message = `${summary.passed}/${summary.total_tests} tests passed, ${summary.failed} failed`;
+                    addResult('Diagnostics', summary.failed === 0, message, data);
+                })
+                .catch(error => {
+                    addResult('Diagnostics', false, `Error: ${error.message}`);
+                });
+        }
+        
+        // Auto-run basic test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            testBasicAPI();
+        });
+    </script>
+</body>
+</html>

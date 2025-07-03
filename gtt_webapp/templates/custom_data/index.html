@@ -236,7 +236,17 @@ function deleteData(symbol) {
 
 function addData() {
     const form = document.getElementById('addDataForm');
+    if (!form) {
+        console.error('Add data form not found');
+        return;
+    }
+    
     const formData = new FormData(form);
+    if (!formData || typeof formData.entries !== 'function') {
+        console.error('FormData is invalid or does not support entries method');
+        return;
+    }
+    
     const data = Object.fromEntries(formData.entries());
     
     fetch('/custom-data/add', {

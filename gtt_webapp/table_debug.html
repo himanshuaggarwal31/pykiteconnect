@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTT Table Debug</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .debug-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .console-output { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            max-height: 300px; 
+            overflow-y: auto; 
+        }
+        .test-table {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>GTT Table Debug Page</h1>
+        
+        <div class="debug-section">
+            <h3>API Test</h3>
+            <button class="btn btn-primary" onclick="testAPI()">Test API Endpoint</button>
+            <div id="apiResult" class="console-output mt-3"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>DOM Elements Check</h3>
+            <button class="btn btn-info" onclick="checkDOMElements()">Check DOM Elements</button>
+            <div id="domResult" class="console-output mt-3"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>Table Structure Test</h3>
+            <button class="btn btn-success" onclick="createTestTable()">Create Test Table</button>
+            <div id="testTableContainer" class="mt-3"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>CSS and Visibility Test</h3>
+            <button class="btn btn-warning" onclick="testVisibility()">Test Visibility</button>
+            <div id="visibilityResult" class="console-output mt-3"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>JavaScript Console Output</h3>
+            <div id="consoleOutput" class="console-output"></div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        function addToConsole(type, ...args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ');
+            consoleOutput.innerHTML += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole('log', ...args);
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole('error', ...args);
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole('warn', ...args);
+        };
+        
+        async function testAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = 'Testing API...';
+            
+            try {
+                const response = await fetch('/api/custom-gtt/orders');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `Status: ${response.status}\n` +
+                    `Response: ${JSON.stringify(data, null, 2)}`;
+                    
+                console.log('API Test Result:', data);
+            } catch (error) {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+                console.error('API Test Error:', error);
+            }
+        }
+        
+        function checkDOMElements() {
+            const resultDiv = document.getElementById('domResult');
+            
+            const elements = [
+                'customGttTable',
+                'customGttTableBody',
+                'selectedCount',
+                'totalAmount', 
+                'currentRecords',
+                'totalRecords',
+                'currentPage',
+                'totalPages'
+            ];
+            
+            let results = '';
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                results += `${id}: ${element ? 'FOUND' : 'NOT FOUND'}\n`;
+                if (element) {
+                    results += `  - tagName: ${element.tagName}\n`;
+                    results += `  - className: ${element.className}\n`;
+                    results += `  - innerHTML length: ${element.innerHTML.length}\n`;
+                }
+            });
+            
+            resultDiv.innerHTML = results;
+            console.log('DOM Elements Check:', results);
+        }
+        
+        function createTestTable() {
+            const container = document.getElementById('testTableContainer');
+            
+            const tableHTML = `
+                <div class="table-responsive">
+                    <table class="table table-hover" id="testTable">
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <th>Symbol</th>
+                                <th>Company</th>
+                                <th>Exchange</th>
+                                <th>Type</th>
+                                <th>Trigger</th>
+                                <th>Last Price</th>
+                                <th>Quantity</th>
+                                <th>Amount</th>
+                                <th>Notes</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="testTableBody">
+                            <tr>
+                                <td><input type="checkbox"></td>
+                                <td>RELIANCE</td>
+                                <td>Reliance Industries Ltd</td>
+                                <td>NSE</td>
+                                <td>BUY</td>
+                                <td>2500</td>
+                                <td>2480</td>
+                                <td>10</td>
+                                <td>₹25,000</td>
+                                <td>Test order</td>
+                                <td><span class="badge bg-secondary">Saved</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-success">Place</button>
+                                    <button class="btn btn-sm btn-primary">Edit</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            container.innerHTML = tableHTML;
+            console.log('Test table created');
+        }
+        
+        function testVisibility() {
+            const resultDiv = document.getElementById('visibilityResult');
+            
+            // Try to find the actual table from the main page
+            const iframe = window.parent;
+            let results = 'Testing visibility...\n';
+            
+            // Check if we can access the main table
+            const table = document.getElementById('testTable');
+            if (table) {
+                const computedStyle = window.getComputedStyle(table);
+                results += `Test Table Visibility:\n`;
+                results += `  display: ${computedStyle.display}\n`;
+                results += `  visibility: ${computedStyle.visibility}\n`;
+                results += `  opacity: ${computedStyle.opacity}\n`;
+                results += `  height: ${computedStyle.height}\n`;
+                results += `  width: ${computedStyle.width}\n`;
+            }
+            
+            resultDiv.innerHTML = results;
+            console.log('Visibility test results:', results);
+        }
+        
+        // Auto-run some tests
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Debug page loaded');
+            setTimeout(() => {
+                testAPI();
+                checkDOMElements();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

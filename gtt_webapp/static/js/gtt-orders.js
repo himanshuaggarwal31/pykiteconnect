@@ -28,7 +28,6 @@ function updateOrdersTable(orders) {
             <td class="editable-cell" data-field="quantity">${order.quantity}</td>
             <td class="editable-cell" data-field="target_price">${order.target_price || ''}</td>
             <td class="editable-cell" data-field="stop_loss">${order.stop_loss || ''}</td>
-            <td class="editable-cell" data-field="notes">${order.notes || ''}</td>
             <td class="editable-cell" data-field="tags">${order.tags || ''}</td>
             <td>
                 <span class="badge bg-${order.placed_on_kite ? 'success' : 'secondary'}">
