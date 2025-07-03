@@ -2,11 +2,13 @@ conda create --name algo python=3.12
 conda activate algo
 conda deactivate
 
--------------------------
+
+****************************************
 .\venv\Scripts\Activate.ps1
 cd C:\Himanshu\REPOS
 python zip_repo.py pykiteconnect 
 
+****************************************
 
 --------------------------------------
 & 'C:\Users\himan\anaconda3\python.exe' -m venv venv
@@ -22,3 +24,8 @@ python .\AutoConnect.py
 .\venv\Scripts\Activate.ps1
 cd ../gtt_webapp
 python .\run.py
+
+****************************************
+.\venv\Scripts\Activate.ps1
+python .\app\AutoConnect.py
+python .\gtt_webapp\run.py

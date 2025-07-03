@@ -122,16 +122,31 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script>
 // Load data when the page loads
 document.addEventListener('DOMContentLoaded', fetchData);
 
 function fetchData() {
+    console.log('Fetching custom data...');
     fetch('/custom-data/fetch')
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Data received:', data);
+            console.log('Number of records:', data.length);
+            
             const tbody = document.getElementById('dataTableBody');
+            if (!tbody) {
+                console.error('dataTableBody element not found!');
+                return;
+            }
+            
             tbody.innerHTML = '';
             data.forEach(row => {
                 const tr = document.createElement('tr');
@@ -152,6 +167,8 @@ function fetchData() {
                 `;
                 tbody.appendChild(tr);
             });
+            
+            console.log('Table populated, initializing DataTable...');
             initializeCustomDataTable();
             // Custom search
             $('#customDataSearch').off('keyup').on('keyup', function() {
@@ -163,8 +180,9 @@ function fetchData() {
             updateCustomDensityButtons(currentDensity);
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error fetching data');
+            console.error('Error fetching data:', error);
+            console.error('Error details:', error.message);
+            alert('Error fetching data: ' + error.message);
         });
 }
 
