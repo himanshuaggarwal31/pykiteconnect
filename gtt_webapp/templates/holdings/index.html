@@ -1,0 +1,941 @@
+{% extends 'base.html' %}
+
+{% block title %}Holdings - Portfolio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared-table.css') }}">
+<style>
+.portfolio-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.holding-row {
+    transition: all 0.2s ease;
+}
+
+.holding-row:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    transform: translateY(-1px);
+}
+
+.profit { color: #28a745; }
+.loss { color: #dc3545; }
+.neutral { color: #6c757d; }
+
+.pnl-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.pnl-badge.profit {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.pnl-badge.loss {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.instrument-info {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.refresh-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 3rem;
+    height: 3rem;
+}
+
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.sort-icon {
+    margin-left: 0.5rem;
+    opacity: 0.5;
+    font-size: 0.8rem;
+}
+
+.sortable.sort-asc .sort-icon {
+    opacity: 1;
+}
+
+.sortable.sort-desc .sort-icon {
+    opacity: 1;
+}
+
+.sortable.sort-asc .sort-icon:before {
+    content: "\f0de"; /* fa-sort-up */
+}
+
+.sortable.sort-desc .sort-icon:before {
+    content: "\f0dd"; /* fa-sort-down */
+}
+
+.row-count-info {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.portfolio-summary.hidden {
+    display: none !important;
+}
+
+.portfolio-summary {
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.toggle-summary-btn {
+    transition: all 0.2s ease;
+}
+
+#privacyNotice {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-border loading-spinner" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Main header with actions -->
+    <div class="page-header">
+        <div>
+            <h2>
+                <i class="fas fa-briefcase"></i> Portfolio Holdings
+                <small id="privacyNotice" class="text-muted ms-3" style="display: inline; font-size: 0.5em;">
+                    <i class="fas fa-eye-slash me-1"></i>Summary Hidden
+                </small>
+            </h2>
+            <p class="lead text-muted">Your equity holdings and positions</p>
+        </div>
+        <div class="btn-toolbar">
+            <button type="button" class="btn btn-outline-info btn-sm" onclick="toggleSummary()" id="toggleSummaryBtn">
+                <i class="fas fa-eye me-1"></i>Show Summary
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshHoldings()">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportHoldings()">
+                <i class="fas fa-download me-1"></i>Export
+            </button>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-warning py-2" style="font-size: 0.875rem;">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {% if error_message %}
+            {{ error_message }}
+        {% else %}
+            Unable to connect to KiteConnect. Please make sure:
+            <ol class="mb-0 mt-2">
+                <li>You have run AutoConnect.py to generate access_token.txt</li>
+                <li>Your access token is valid and not expired</li>
+                <li>You have proper internet connectivity</li>
+            </ol>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Portfolio Summary -->
+    <div class="portfolio-summary" id="portfolioSummary" style="display: none;">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalInvestment">₹0.00</div>
+                    <div class="summary-label">Total Investment</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-value" id="currentValue">₹0.00</div>
+                    <div class="summary-label">Current Value</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalPnL">₹0.00</div>
+                    <div class="summary-label">Total P&L</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalHoldings">0</div>
+                    <div class="summary-label">Total Holdings</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls bar -->
+    <div class="controls-bar mb-3">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <!-- Search -->
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="holdingsSearch" placeholder="Search holdings...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <!-- Exchange Filter -->
+                <select class="form-select form-select-sm" id="exchangeFilter">
+                    <option value="">All Exchanges</option>
+                    <option value="NSE">NSE</option>
+                    <option value="BSE">BSE</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <!-- P&L Filter -->
+                <select class="form-select form-select-sm" id="pnlFilter">
+                    <option value="">All Holdings</option>
+                    <option value="profit">Profit Only</option>
+                    <option value="loss">Loss Only</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <!-- Length selector -->
+                <select class="form-select form-select-sm" id="holdingsLength">
+                    <option value="10">10 rows</option>
+                    <option value="25" selected>25 rows</option>
+                    <option value="50">50 rows</option>
+                    <option value="100">100 rows</option>
+                    <option value="-1">All rows</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main table -->
+    <div class="table-wrapper">
+        <!-- Row count info -->
+        <div class="row-count-info" id="rowCountInfo" style="display: none;">
+            Showing <span id="currentRowCount">0</span> of <span id="totalRowCount">0</span> holdings
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover table-compact" id="holdingsTable">
+                <thead>
+                    <tr>
+                        <th class="text-center sortable" data-column="symbol">
+                            Symbol
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="exchange">
+                            Exchange
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="quantity">
+                            Quantity
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="avg_price">
+                            Avg Price
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="ltp">
+                            LTP
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="investment">
+                            Investment
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="current_value">
+                            Current Value
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="pnl">
+                            P&L
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="pnl_pct">
+                            P&L %
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="day_change">
+                            Day Change
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="holdingsTableBody">
+                    {% if not error and holdings %}
+                        {% for holding in holdings %}
+                        <tr class="holding-row" 
+                            data-exchange="{{ holding.exchange }}"
+                            data-symbol="{{ holding.tradingsymbol }}">
+                            <td class="text-start">
+                                <div>
+                                    <strong>{{ holding.tradingsymbol }}</strong>
+                                    <div class="instrument-info">
+                                        {{ holding.instrument_token }} • {{ holding.product }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">{{ holding.exchange }}</td>
+                            <td class="text-end">{{ holding.quantity }}</td>
+                            <td class="text-end">₹{{ "%.2f"|format(holding.average_price) }}</td>
+                            <td class="text-end">₹{{ "%.2f"|format(holding.last_price) }}</td>
+                            <td class="text-end">₹{{ "%.2f"|format(holding.average_price * holding.quantity) }}</td>
+                            <td class="text-end">₹{{ "%.2f"|format(holding.last_price * holding.quantity) }}</td>
+                            <td class="text-end">
+                                {% set pnl = (holding.last_price - holding.average_price) * holding.quantity %}
+                                {% set pnl_class = "profit" if pnl > 0 else ("loss" if pnl < 0 else "neutral") %}
+                                <span class="pnl-badge {{ pnl_class }}">
+                                    ₹{{ "%.2f"|format(pnl) }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                {% set pnl_pct = ((holding.last_price - holding.average_price) / holding.average_price * 100) if holding.average_price > 0 else 0 %}
+                                {% set pnl_class = "profit" if pnl_pct > 0 else ("loss" if pnl_pct < 0 else "neutral") %}
+                                <span class="{{ pnl_class }}">{{ "%.2f"|format(pnl_pct) }}%</span>
+                            </td>
+                            <td class="text-end">
+                                {% set day_change = holding.last_price - holding.close_price if holding.close_price else 0 %}
+                                {% set day_change_pct = (day_change / holding.close_price * 100) if holding.close_price else 0 %}
+                                {% set change_class = "profit" if day_change > 0 else ("loss" if day_change < 0 else "neutral") %}
+                                <span class="{{ change_class }}">
+                                    ₹{{ "%.2f"|format(day_change) }} ({{ "%.2f"|format(day_change_pct) }}%)
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if not holdings and not error %}
+    <div class="text-center py-5">
+        <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No Holdings Found</h4>
+        <p class="text-muted">You don't have any equity holdings at the moment.</p>
+    </div>
+    {% endif %}
+
+    <!-- Floating refresh button -->
+    <button type="button" class="btn btn-primary refresh-btn" onclick="refreshHoldings()" title="Refresh Holdings">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+let allHoldings = [];
+let filteredHoldings = [];
+let currentRowLimit = 25;
+let currentSortColumn = null;
+let currentSortDirection = 'asc';
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Holdings page loaded');
+    
+    // Initialize summary visibility based on saved preference
+    initializeSummaryVisibility();
+    
+    // Initialize if we have holdings data
+    {% if holdings and not error %}
+        loadHoldingsFromServer();
+    {% endif %}
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Set up column sorting
+    setupColumnSorting();
+});
+
+function setupEventListeners() {
+    // Search functionality
+    const searchInput = document.getElementById('holdingsSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(handleSearch, 300));
+    }
+    
+    // Filter dropdowns
+    const exchangeFilter = document.getElementById('exchangeFilter');
+    const pnlFilter = document.getElementById('pnlFilter');
+    
+    if (exchangeFilter) {
+        exchangeFilter.addEventListener('change', applyFilters);
+    }
+    if (pnlFilter) {
+        pnlFilter.addEventListener('change', applyFilters);
+    }
+    
+    // Row limit selector
+    const lengthSelect = document.getElementById('holdingsLength');
+    if (lengthSelect) {
+        lengthSelect.addEventListener('change', handleRowLimitChange);
+    }
+}
+
+function setupColumnSorting() {
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.getAttribute('data-column');
+            sortTable(column);
+        });
+    });
+}
+
+function sortTable(column) {
+    // Toggle sort direction if same column
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+    }
+    
+    // Update header styling
+    updateSortHeaders();
+    
+    // Sort the filtered holdings
+    filteredHoldings.sort((a, b) => {
+        let valueA, valueB;
+        
+        switch (column) {
+            case 'symbol':
+                valueA = a.getAttribute('data-symbol').toLowerCase();
+                valueB = b.getAttribute('data-symbol').toLowerCase();
+                break;
+            case 'exchange':
+                valueA = a.getAttribute('data-exchange').toLowerCase();
+                valueB = b.getAttribute('data-exchange').toLowerCase();
+                break;
+            case 'quantity':
+                valueA = parseFloat(a.cells[2].textContent) || 0;
+                valueB = parseFloat(b.cells[2].textContent) || 0;
+                break;
+            case 'avg_price':
+                valueA = parseFloat(a.cells[3].textContent.replace(/[₹,]/g, '')) || 0;
+                valueB = parseFloat(b.cells[3].textContent.replace(/[₹,]/g, '')) || 0;
+                break;
+            case 'ltp':
+                valueA = parseFloat(a.cells[4].textContent.replace(/[₹,]/g, '')) || 0;
+                valueB = parseFloat(b.cells[4].textContent.replace(/[₹,]/g, '')) || 0;
+                break;
+            case 'investment':
+                valueA = parseFloat(a.cells[5].textContent.replace(/[₹,]/g, '')) || 0;
+                valueB = parseFloat(b.cells[5].textContent.replace(/[₹,]/g, '')) || 0;
+                break;
+            case 'current_value':
+                valueA = parseFloat(a.cells[6].textContent.replace(/[₹,]/g, '')) || 0;
+                valueB = parseFloat(b.cells[6].textContent.replace(/[₹,]/g, '')) || 0;
+                break;
+            case 'pnl':
+                valueA = parseFloat(a.cells[7].textContent.replace(/[₹,]/g, '')) || 0;
+                valueB = parseFloat(b.cells[7].textContent.replace(/[₹,]/g, '')) || 0;
+                break;
+            case 'pnl_pct':
+                valueA = parseFloat(a.cells[8].textContent.replace(/[%]/g, '')) || 0;
+                valueB = parseFloat(b.cells[8].textContent.replace(/[%]/g, '')) || 0;
+                break;
+            case 'day_change':
+                const dayChangeA = a.cells[9].textContent.match(/₹([-+]?\d*\.?\d+)/);
+                const dayChangeB = b.cells[9].textContent.match(/₹([-+]?\d*\.?\d+)/);
+                valueA = dayChangeA ? parseFloat(dayChangeA[1]) : 0;
+                valueB = dayChangeB ? parseFloat(dayChangeB[1]) : 0;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof valueA === 'string') {
+            return currentSortDirection === 'asc' 
+                ? valueA.localeCompare(valueB)
+                : valueB.localeCompare(valueA);
+        } else {
+            return currentSortDirection === 'asc' 
+                ? valueA - valueB
+                : valueB - valueA;
+        }
+    });
+    
+    // Update table display
+    updateTableDisplay();
+}
+
+function updateSortHeaders() {
+    // Reset all headers
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+    });
+    
+    // Set current sorted header
+    const currentHeader = document.querySelector(`[data-column="${currentSortColumn}"]`);
+    if (currentHeader) {
+        currentHeader.classList.add(`sort-${currentSortDirection}`);
+    }
+}
+
+function loadHoldingsFromServer() {
+    const rows = document.querySelectorAll('#holdingsTableBody tr');
+    allHoldings = Array.from(rows);
+    filteredHoldings = [...allHoldings];
+    
+    // Calculate and show summary
+    calculateSummary();
+    
+    // Update table display to show row count
+    updateTableDisplay();
+    
+    console.log(`Loaded ${allHoldings.length} holdings`);
+}
+
+function refreshHoldings() {
+    showLoading(true);
+    
+    fetch('/holdings/api/holdings')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            updateHoldingsTable(data.holdings);
+            updateSummary(data.summary);
+            
+            console.log('Holdings refreshed successfully');
+        })
+        .catch(error => {
+            console.error('Error refreshing holdings:', error);
+            alert('Error refreshing holdings: ' + error.message);
+        })
+        .finally(() => {
+            showLoading(false);
+        });
+}
+
+function toggleSummary() {
+    const portfolioSummary = document.getElementById('portfolioSummary');
+    const privacyNotice = document.getElementById('privacyNotice');
+    const toggleBtn = document.getElementById('toggleSummaryBtn');
+    
+    const isHidden = portfolioSummary.style.display === 'none';
+    
+    if (isHidden) {
+        // Show summary
+        portfolioSummary.style.display = 'block';
+        privacyNotice.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-eye-slash me-1"></i>Hide Summary';
+        toggleBtn.classList.remove('btn-outline-info');
+        toggleBtn.classList.add('btn-outline-warning');
+        
+        // Save preference
+        localStorage.setItem('holdingsSummaryVisible', 'true');
+    } else {
+        // Hide summary
+        portfolioSummary.style.display = 'none';
+        privacyNotice.style.display = 'inline';
+        toggleBtn.innerHTML = '<i class="fas fa-eye me-1"></i>Show Summary';
+        toggleBtn.classList.remove('btn-outline-warning');
+        toggleBtn.classList.add('btn-outline-info');
+        
+        // Save preference
+        localStorage.setItem('holdingsSummaryVisible', 'false');
+    }
+}
+
+function initializeSummaryVisibility() {
+    // Default to hidden for privacy unless user explicitly chose to show it
+    const userPreference = localStorage.getItem('holdingsSummaryVisible');
+    const isVisible = userPreference === 'true'; // Only show if explicitly set to true
+    
+    const portfolioSummary = document.getElementById('portfolioSummary');
+    const privacyNotice = document.getElementById('privacyNotice');
+    const toggleBtn = document.getElementById('toggleSummaryBtn');
+    
+    if (isVisible) {
+        // Show summary (only if user previously chose to show it)
+        portfolioSummary.style.display = 'block';
+        privacyNotice.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-eye-slash me-1"></i>Hide Summary';
+        toggleBtn.classList.remove('btn-outline-info');
+        toggleBtn.classList.add('btn-outline-warning');
+    } else {
+        // Hide summary (default behavior for privacy)
+        portfolioSummary.style.display = 'none';
+        privacyNotice.style.display = 'inline';
+        toggleBtn.innerHTML = '<i class="fas fa-eye me-1"></i>Show Summary';
+        toggleBtn.classList.remove('btn-outline-warning');
+        toggleBtn.classList.add('btn-outline-info');
+        
+        // Ensure preference is set to hidden if not set
+        if (userPreference === null) {
+            localStorage.setItem('holdingsSummaryVisible', 'false');
+        }
+    }
+}
+
+function updateHoldingsTable(holdings) {
+    const tbody = document.getElementById('holdingsTableBody');
+    tbody.innerHTML = '';
+    
+    holdings.forEach(holding => {
+        const row = createHoldingRow(holding);
+        tbody.appendChild(row);
+    });
+    
+    // Update global arrays
+    loadHoldingsFromServer();
+    applyFilters();
+}
+
+function createHoldingRow(holding) {
+    const pnl = (holding.last_price - holding.average_price) * holding.quantity;
+    const pnlPct = holding.average_price > 0 ? ((holding.last_price - holding.average_price) / holding.average_price * 100) : 0;
+    const dayChange = holding.last_price - (holding.close_price || holding.last_price);
+    const dayChangePct = holding.close_price ? (dayChange / holding.close_price * 100) : 0;
+    
+    const pnlClass = pnl > 0 ? 'profit' : (pnl < 0 ? 'loss' : 'neutral');
+    const changeClass = dayChange > 0 ? 'profit' : (dayChange < 0 ? 'loss' : 'neutral');
+    
+    const row = document.createElement('tr');
+    row.className = 'holding-row';
+    row.setAttribute('data-exchange', holding.exchange);
+    row.setAttribute('data-symbol', holding.tradingsymbol);
+    
+    row.innerHTML = `
+        <td class="text-start">
+            <div>
+                <strong>${holding.tradingsymbol}</strong>
+                <div class="instrument-info">
+                    ${holding.instrument_token} • ${holding.product}
+                </div>
+            </div>
+        </td>
+        <td class="text-center">${holding.exchange}</td>
+        <td class="text-end">${holding.quantity}</td>
+        <td class="text-end">₹${holding.average_price.toFixed(2)}</td>
+        <td class="text-end">₹${holding.last_price.toFixed(2)}</td>
+        <td class="text-end">₹${(holding.average_price * holding.quantity).toFixed(2)}</td>
+        <td class="text-end">₹${(holding.last_price * holding.quantity).toFixed(2)}</td>
+        <td class="text-end">
+            <span class="pnl-badge ${pnlClass}">
+                ₹${pnl.toFixed(2)}
+            </span>
+        </td>
+        <td class="text-end">
+            <span class="${pnlClass}">${pnlPct.toFixed(2)}%</span>
+        </td>
+        <td class="text-end">
+            <span class="${changeClass}">
+                ₹${dayChange.toFixed(2)} (${dayChangePct.toFixed(2)}%)
+            </span>
+        </td>
+    `;
+    
+    return row;
+}
+
+function updateSummary(summary) {
+    document.getElementById('totalInvestment').textContent = `₹${formatCurrency(summary.total_investment)}`;
+    document.getElementById('currentValue').textContent = `₹${formatCurrency(summary.total_current_value)}`;
+    document.getElementById('totalPnL').textContent = `₹${formatCurrency(summary.total_pnl)}`;
+    document.getElementById('totalHoldings').textContent = summary.total_holdings;
+    
+    // Update P&L color
+    const pnlElement = document.getElementById('totalPnL');
+    pnlElement.className = 'summary-value ' + (summary.total_pnl >= 0 ? 'profit' : 'loss');
+    
+    // Only show summary if user preference is to show it (don't auto-show for privacy)
+    const userPreference = localStorage.getItem('holdingsSummaryVisible');
+    if (userPreference === 'true') {
+        document.getElementById('portfolioSummary').style.display = 'block';
+    } else {
+        document.getElementById('portfolioSummary').style.display = 'none';
+    }
+}
+
+function calculateSummary() {
+    // This is called when loading from server data
+    // We'll use the API to get accurate calculations
+    fetch('/holdings/api/holdings')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error && data.summary) {
+                updateSummary(data.summary);
+            }
+        })
+        .catch(error => {
+            console.log('Could not calculate summary:', error);
+        });
+}
+
+function handleSearch() {
+    const searchTerm = document.getElementById('holdingsSearch').value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+        applyFilters();
+        return;
+    }
+    
+    filteredHoldings = allHoldings.filter(row => {
+        const text = row.textContent.toLowerCase();
+        return text.includes(searchTerm);
+    });
+    
+    applyCurrentFilters();
+    updateTableDisplay();
+}
+
+function applyFilters() {
+    const exchangeValue = document.getElementById('exchangeFilter').value;
+    const pnlValue = document.getElementById('pnlFilter').value;
+    
+    // Start with all holdings
+    filteredHoldings = [...allHoldings];
+    
+    // Apply search if exists
+    const searchTerm = document.getElementById('holdingsSearch').value.toLowerCase().trim();
+    if (searchTerm) {
+        filteredHoldings = filteredHoldings.filter(row => {
+            const text = row.textContent.toLowerCase();
+            return text.includes(searchTerm);
+        });
+    }
+    
+    // Apply exchange filter
+    if (exchangeValue) {
+        filteredHoldings = filteredHoldings.filter(row => {
+            return row.dataset.exchange === exchangeValue;
+        });
+    }
+    
+    // Apply P&L filter
+    if (pnlValue) {
+        filteredHoldings = filteredHoldings.filter(row => {
+            const pnlElement = row.querySelector('.pnl-badge');
+            if (pnlElement) {
+                const hasProfit = pnlElement.classList.contains('profit');
+                const hasLoss = pnlElement.classList.contains('loss');
+                
+                if (pnlValue === 'profit') return hasProfit;
+                if (pnlValue === 'loss') return hasLoss;
+            }
+            return true;
+        });
+    }
+    
+    updateTableDisplay();
+}
+
+function applyCurrentFilters() {
+    const exchangeValue = document.getElementById('exchangeFilter').value;
+    const pnlValue = document.getElementById('pnlFilter').value;
+    
+    if (exchangeValue) {
+        filteredHoldings = filteredHoldings.filter(row => {
+            return row.dataset.exchange === exchangeValue;
+        });
+    }
+    
+    if (pnlValue) {
+        filteredHoldings = filteredHoldings.filter(row => {
+            const pnlElement = row.querySelector('.pnl-badge');
+            if (pnlElement) {
+                const hasProfit = pnlElement.classList.contains('profit');
+                const hasLoss = pnlElement.classList.contains('loss');
+                
+                if (pnlValue === 'profit') return hasProfit;
+                if (pnlValue === 'loss') return hasLoss;
+            }
+            return true;
+        });
+    }
+}
+
+function updateTableDisplay() {
+    // Hide all rows first
+    allHoldings.forEach(row => {
+        row.style.display = 'none';
+    });
+    
+    // Show filtered rows up to the limit
+    const limit = currentRowLimit === -1 ? filteredHoldings.length : Math.min(currentRowLimit, filteredHoldings.length);
+    
+    for (let i = 0; i < limit; i++) {
+        if (filteredHoldings[i]) {
+            filteredHoldings[i].style.display = '';
+        }
+    }
+    
+    // Update row count info
+    updateRowCountInfo(limit, filteredHoldings.length, allHoldings.length);
+    
+    console.log(`Showing ${limit} of ${filteredHoldings.length} holdings`);
+}
+
+function updateRowCountInfo(showing, filtered, total) {
+    const rowCountInfo = document.getElementById('rowCountInfo');
+    const currentRowCount = document.getElementById('currentRowCount');
+    const totalRowCount = document.getElementById('totalRowCount');
+    
+    if (rowCountInfo && currentRowCount && totalRowCount) {
+        currentRowCount.textContent = showing;
+        totalRowCount.textContent = filtered;
+        
+        // Update the text based on whether we're showing all or filtered results
+        if (filtered === total) {
+            rowCountInfo.innerHTML = `Showing <span id="currentRowCount">${showing}</span> of <span id="totalRowCount">${total}</span> holdings`;
+        } else {
+            rowCountInfo.innerHTML = `Showing <span id="currentRowCount">${showing}</span> of <span id="totalRowCount">${filtered}</span> filtered holdings (${total} total)`;
+        }
+        
+        // Show the info if we have holdings
+        if (total > 0) {
+            rowCountInfo.style.display = 'block';
+        } else {
+            rowCountInfo.style.display = 'none';
+        }
+    }
+}
+
+function handleRowLimitChange() {
+    const select = document.getElementById('holdingsLength');
+    currentRowLimit = parseInt(select.value);
+    updateTableDisplay();
+}
+
+function showLoading(show) {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = show ? 'flex' : 'none';
+}
+
+function exportHoldings() {
+    // Simple CSV export
+    const rows = [
+        ['Symbol', 'Exchange', 'Quantity', 'Avg Price', 'LTP', 'Investment', 'Current Value', 'P&L', 'P&L %']
+    ];
+    
+    filteredHoldings.forEach(row => {
+        if (row.style.display !== 'none') {
+            const cells = row.querySelectorAll('td');
+            const rowData = [
+                cells[0].querySelector('strong').textContent, // Symbol
+                cells[1].textContent, // Exchange
+                cells[2].textContent, // Quantity
+                cells[3].textContent, // Avg Price
+                cells[4].textContent, // LTP
+                cells[5].textContent, // Investment
+                cells[6].textContent, // Current Value
+                cells[7].textContent, // P&L
+                cells[8].textContent  // P&L %
+            ];
+            rows.push(rowData);
+        }
+    });
+    
+    const csv = rows.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `holdings_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount || 0);
+}
+
+// Utility function for debouncing
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+</script>
+{% endblock %}

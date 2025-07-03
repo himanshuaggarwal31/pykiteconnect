@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Holdings Preferences</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 20px;
+            text-align: center;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .btn:hover { background: #0056b3; }
+        .status { 
+            margin: 20px 0; 
+            padding: 10px; 
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Holdings Preferences Manager</h1>
+    
+    <div class="info status">
+        <strong>Current Preference:</strong> <span id="currentPref">Checking...</span>
+    </div>
+    
+    <button class="btn" onclick="clearPreferences()">Clear All Preferences</button>
+    <button class="btn" onclick="setHidden()">Set to Hidden (Default)</button>
+    <button class="btn" onclick="checkPreference()">Check Current Setting</button>
+    
+    <div id="result" class="status" style="display: none;"></div>
+    
+    <p>
+        <a href="/holdings/" target="_blank">Open Holdings Page</a> to test the changes.
+    </p>
+    
+    <script>
+        function clearPreferences() {
+            localStorage.removeItem('holdingsSummaryVisible');
+            showResult('All holdings preferences cleared!', 'success');
+            checkPreference();
+        }
+        
+        function setHidden() {
+            localStorage.setItem('holdingsSummaryVisible', 'false');
+            showResult('Preference set to Hidden (default privacy mode)', 'success');
+            checkPreference();
+        }
+        
+        function checkPreference() {
+            const pref = localStorage.getItem('holdingsSummaryVisible');
+            const prefText = pref === null ? 'Not Set (Will default to Hidden)' : 
+                           pref === 'true' ? 'Visible' : 'Hidden';
+            document.getElementById('currentPref').textContent = prefText;
+        }
+        
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = 'status ' + type;
+            result.style.display = 'block';
+        }
+        
+        // Check on load
+        checkPreference();
+    </script>
+</body>
+</html>

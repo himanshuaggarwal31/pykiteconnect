@@ -150,6 +150,7 @@ def create_app():
     # Register blueprints
     from blueprints.main import main_bp
     from blueprints.custom_data import custom_data_bp
+    from blueprints.holdings import holdings_bp
     # Import only one api_bp to avoid duplicate blueprint names
     from blueprints.api_bp import api_bp
     from blueprints.custom_gtt import custom_gtt_bp
@@ -173,6 +174,9 @@ def create_app():
     
     app.register_blueprint(custom_data_bp, url_prefix='/custom-data')
     logger.debug("Registered custom_data_bp blueprint.")
+    
+    app.register_blueprint(holdings_bp, url_prefix='/holdings')
+    logger.debug("Registered holdings_bp blueprint.")
     
     try:
         # Register api_bp with app ONLY ONCE
