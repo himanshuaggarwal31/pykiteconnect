@@ -1,5 +1,50 @@
 // Dashboard GTT Orders - Main JavaScript
 
+// Test that script is loading
+console.log('[DEBUG] Dashboard.js script loading...');
+
+// Global function to delete GTT order - defined early to ensure availability
+function deleteOrder(orderId) {
+    console.log(`[DEBUG] deleteOrder called with orderId: ${orderId}`);
+    if (confirm('Are you sure you want to delete this order?')) {
+        console.log(`[DEBUG] User confirmed deletion of order: ${orderId}`);
+        fetch(`/api/gtt/order/${orderId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            console.log(`[DEBUG] Delete response status: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`[DEBUG] Delete response data:`, data);
+            if (data.error) {
+                console.error(`[ERROR] API returned error: ${data.error}`);
+                alert('Error: ' + data.error);
+            } else {
+                console.log(`[SUCCESS] Order ${orderId} deleted successfully`);
+                alert('Order deleted successfully!');
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('[ERROR] Delete Order Error:', error);
+            alert('Error deleting order: ' + error.message);
+        });
+    } else {
+        console.log(`[DEBUG] User cancelled deletion of order: ${orderId}`);
+    }
+}
+
+// Make function globally available immediately
+window.deleteOrder = deleteOrder;
+console.log('[DEBUG] deleteOrder function defined and attached to window');
+
 // Global variables for filtering and calculations
 let allRows = [];
 let filteredRows = [];
@@ -474,38 +519,6 @@ function createOrder() {
         console.error('Create Order Error:', error);
         alert('Error creating order: ' + error.message);
     });
-}
-
-function deleteOrder(orderId) {
-    if (confirm('Are you sure you want to delete this order?')) {
-        fetch(`/api/gtt/order/${orderId}`, {
-            method: 'DELETE'
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text().then(text => {
-                    throw new Error(`Expected JSON response but received: ${text.substring(0, 100)}...`);
-                });
-            }
-        })
-        .then(data => {
-            if (data.error) {
-                alert('Error: ' + data.error);
-            } else {
-                location.reload();
-            }
-        })
-        .catch(error => {
-            console.error('Delete Order Error:', error);
-            alert('Error deleting order: ' + error.message);
-        });
-    }
 }
 
 function createMultiGttOrders() {

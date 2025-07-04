@@ -103,13 +103,23 @@ def create_order():
 @api_bp.route('/gtt/order/<int:trigger_id>', methods=['DELETE'])
 def delete_gtt_order(trigger_id):
     """Delete a GTT order using KiteConnect"""
+    print(f"[DEBUG] Delete GTT order called with trigger_id: {trigger_id}")
+    logger.info(f"Delete GTT order called with trigger_id: {trigger_id}")
     kite = current_app.config.get('kite')
     if kite is None:
+        print("[ERROR] KiteConnect is not initialized")
+        logger.error("KiteConnect is not initialized")
         return jsonify({'error': 'KiteConnect is not initialized. Please check access_token.txt.'}), 500
     try:
+        print(f"[DEBUG] Attempting to delete GTT with trigger_id: {trigger_id}")
+        logger.info(f"Attempting to delete GTT with trigger_id: {trigger_id}")
         result = kite.delete_gtt(trigger_id)
+        print(f"[DEBUG] Delete GTT result: {result}")
+        logger.info(f"Delete GTT result: {result}")
         return jsonify({'message': f'GTT order {trigger_id} deleted successfully', 'trigger_id': result.get('trigger_id')}), 200
     except Exception as e:
+        print(f"[ERROR] Failed to delete GTT {trigger_id}: {str(e)}")
+        logger.error(f"Failed to delete GTT {trigger_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/gtt/orders', methods=['GET'])

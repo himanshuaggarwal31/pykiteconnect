@@ -215,6 +215,35 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Initialized next page button');
         }
         
+        // Initialize main action buttons
+        const addNewOrderBtn = document.getElementById('addNewOrderBtn');
+        if (addNewOrderBtn) {
+            addNewOrderBtn.addEventListener('click', () => {
+                showOrderModal();
+            });
+            console.log('✅ Initialized add new order button');
+        }
+        
+        const placeAllOrdersBtn = document.getElementById('placeAllOrdersBtn');
+        if (placeAllOrdersBtn) {
+            placeAllOrdersBtn.addEventListener('click', () => {
+                const selectedOrders = getSelectedOrders();
+                if (selectedOrders.length === 0) {
+                    showToast('Please select at least one order to place', 'warning');
+                    return;
+                }
+                
+                showConfirmationModal(
+                    'Place Selected Orders',
+                    `Are you sure you want to place ${selectedOrders.length} selected order(s) on Kite? This action cannot be undone.`,
+                    () => {
+                        placeMultipleOrders(selectedOrders);
+                    }
+                );
+            });
+            console.log('✅ Initialized place all orders button');
+        }
+        
         // Initialize sorting functionality
         initializeSorting();
         
@@ -424,10 +453,17 @@ function navigateToPage(page) {
     const recordsPerPage = document.getElementById('recordsPerPage');
     
     const params = new URLSearchParams({
-        page: page,
-        per_page: recordsPerPage.value
+        page: page
     });
     
+    // Handle the per_page parameter correctly
+    const perPageValue = recordsPerPage.value;
+    if (perPageValue === '-1' || perPageValue.toLowerCase() === 'all') {
+        params.append('per_page', '1000'); // Use a large number to effectively show all records
+    } else {
+        params.append('per_page', perPageValue);
+    }
+
     if (searchInput.value) {
         params.append('search', searchInput.value);
     }
@@ -1341,10 +1377,21 @@ function loadTableData() {
     const searchInput = document.getElementById('searchInput');
     
     const params = new URLSearchParams({
-        page: 1,
-        per_page: recordsPerPage ? recordsPerPage.value : 25
+        page: 1
     });
     
+    // Handle the per_page parameter correctly
+    if (recordsPerPage) {
+        const perPageValue = recordsPerPage.value;
+        if (perPageValue === '-1' || perPageValue.toLowerCase() === 'all') {
+            params.append('per_page', '1000'); // Use a large number to effectively show all records
+        } else {
+            params.append('per_page', perPageValue);
+        }
+    } else {
+        params.append('per_page', '25'); // Default if no selector found
+    }
+
     if (searchInput && searchInput.value) {
         params.append('search', searchInput.value);
     }

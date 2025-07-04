@@ -164,6 +164,16 @@
     line-height: 1.2;
 }
 
+/* Default highlight for all table rows */
+.table tbody tr {
+    background-color: #f3f7fa !important;
+}
+
+/* Keep hover effect slightly darker */
+.table tbody tr:hover {
+    background-color: #e6f0fa !important;
+}
+
 /* Sidebar styling */
 #sidebar {
     min-width: 220px;

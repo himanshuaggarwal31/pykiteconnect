@@ -89,8 +89,14 @@ function initializeSearch(options = {}) {
         // Add records per page if available
         const recordsPerPage = document.getElementById('recordsPerPage');
         if (recordsPerPage) {
-            params.append('per_page', recordsPerPage.value);
-            console.log(`[search.js] Added per_page param: ${recordsPerPage.value}`);
+            const perPageValue = recordsPerPage.value;
+            if (perPageValue === '-1' || perPageValue.toLowerCase() === 'all') {
+                params.append('per_page', '1000'); // Use a large number to effectively show all records
+                console.log(`[search.js] Added per_page param (All): 1000`);
+            } else {
+                params.append('per_page', perPageValue);
+                console.log(`[search.js] Added per_page param: ${perPageValue}`);
+            }
         }
 
         // Add page parameter if needed

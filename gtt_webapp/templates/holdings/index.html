@@ -272,10 +272,10 @@
                 <!-- Length selector -->
                 <select class="form-select form-select-sm" id="holdingsLength">
                     <option value="10">10 rows</option>
-                    <option value="25" selected>25 rows</option>
+                    <option value="25">25 rows</option>
                     <option value="50">50 rows</option>
                     <option value="100">100 rows</option>
-                    <option value="-1">All rows</option>
+                    <option value="-1" selected>All rows</option>
                 </select>
             </div>
         </div>
@@ -292,7 +292,7 @@
             <table class="table table-hover table-compact" id="holdingsTable">
                 <thead>
                     <tr>
-                        <th class="text-center sortable" data-column="symbol">
+                        <th class="text-start sortable" data-column="symbol">
                             Symbol
                             <i class="fas fa-sort sort-icon"></i>
                         </th>
@@ -328,8 +328,12 @@
                             P&L %
                             <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="text-center sortable" data-column="day_change">
-                            Day Change
+                        <th class="text-center sortable" data-column="day_change_amount">
+                            Day Change ₹
+                            <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="day_change_pct">
+                            Day Change %
                             <i class="fas fa-sort sort-icon"></i>
                         </th>
                     </tr>
@@ -349,30 +353,36 @@
                                 </div>
                             </td>
                             <td class="text-center">{{ holding.exchange }}</td>
-                            <td class="text-end">{{ holding.quantity }}</td>
-                            <td class="text-end">₹{{ "%.2f"|format(holding.average_price) }}</td>
-                            <td class="text-end">₹{{ "%.2f"|format(holding.last_price) }}</td>
-                            <td class="text-end">₹{{ "%.2f"|format(holding.average_price * holding.quantity) }}</td>
-                            <td class="text-end">₹{{ "%.2f"|format(holding.last_price * holding.quantity) }}</td>
-                            <td class="text-end">
+                            <td class="text-center">{{ holding.quantity }}</td>
+                            <td class="text-center">₹{{ "%.2f"|format(holding.average_price) }}</td>
+                            <td class="text-center">₹{{ "%.2f"|format(holding.last_price) }}</td>
+                            <td class="text-center">₹{{ "%.2f"|format(holding.average_price * holding.quantity) }}</td>
+                            <td class="text-center">₹{{ "%.2f"|format(holding.last_price * holding.quantity) }}</td>
+                            <td class="text-center">
                                 {% set pnl = (holding.last_price - holding.average_price) * holding.quantity %}
                                 {% set pnl_class = "profit" if pnl > 0 else ("loss" if pnl < 0 else "neutral") %}
                                 <span class="pnl-badge {{ pnl_class }}">
                                     ₹{{ "%.2f"|format(pnl) }}
                                 </span>
                             </td>
-                            <td class="text-end">
+                            <td class="text-center">
                                 {% set pnl_pct = ((holding.last_price - holding.average_price) / holding.average_price * 100) if holding.average_price > 0 else 0 %}
                                 {% set pnl_class = "profit" if pnl_pct > 0 else ("loss" if pnl_pct < 0 else "neutral") %}
                                 <span class="{{ pnl_class }}">{{ "%.2f"|format(pnl_pct) }}%</span>
                             </td>
-                            <td class="text-end">
+                            <td class="text-center">
                                 {% set day_change = holding.last_price - holding.close_price if holding.close_price else 0 %}
                                 {% set day_change_pct = (day_change / holding.close_price * 100) if holding.close_price else 0 %}
                                 {% set change_class = "profit" if day_change > 0 else ("loss" if day_change < 0 else "neutral") %}
-                                <span class="{{ change_class }}">
-                                    ₹{{ "%.2f"|format(day_change) }} ({{ "%.2f"|format(day_change_pct) }}%)
+                                <span class="pnl-badge {{ change_class }}">
+                                    ₹{{ "%.2f"|format(day_change) }}
                                 </span>
+                            </td>
+                            <td class="text-center">
+                                {% set day_change = holding.last_price - holding.close_price if holding.close_price else 0 %}
+                                {% set day_change_pct = (day_change / holding.close_price * 100) if holding.close_price else 0 %}
+                                {% set change_class = "profit" if day_change > 0 else ("loss" if day_change < 0 else "neutral") %}
+                                <span class="{{ change_class }}">{{ "%.2f"|format(day_change_pct) }}%</span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -519,14 +529,19 @@ function sortTable(column) {
                     valueA = parseFloat((pctSpanA?.textContent || '').replace(/[%\s]/g, '')) || 0;
                     valueB = parseFloat((pctSpanB?.textContent || '').replace(/[%\s]/g, '')) || 0;
                     break;
-                case 'day_change':
-                    // Extract day change value from the span
-                    const changeSpanA = a.cells[9]?.querySelector('span');
-                    const changeSpanB = b.cells[9]?.querySelector('span');
-                    const changeMatchA = (changeSpanA?.textContent || '').match(/₹([-+]?\d*\.?\d+)/);
-                    const changeMatchB = (changeSpanB?.textContent || '').match(/₹([-+]?\d*\.?\d+)/);
-                    valueA = changeMatchA ? parseFloat(changeMatchA[1]) : 0;
-                    valueB = changeMatchB ? parseFloat(changeMatchB[1]) : 0;
+                case 'day_change_amount':
+                    // Extract day change amount value from the pnl-badge span
+                    const changeAmountSpanA = a.cells[9]?.querySelector('.pnl-badge');
+                    const changeAmountSpanB = b.cells[9]?.querySelector('.pnl-badge');
+                    valueA = parseFloat((changeAmountSpanA?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    valueB = parseFloat((changeAmountSpanB?.textContent || '').replace(/[₹,\s]/g, '')) || 0;
+                    break;
+                case 'day_change_pct':
+                    // Extract day change percentage value from the span
+                    const changePctSpanA = a.cells[10]?.querySelector('span');
+                    const changePctSpanB = b.cells[10]?.querySelector('span');
+                    valueA = parseFloat((changePctSpanA?.textContent || '').replace(/[%\s]/g, '')) || 0;
+                    valueB = parseFloat((changePctSpanB?.textContent || '').replace(/[%\s]/g, '')) || 0;
                     break;
                 default:
                     console.warn(`Unknown sort column: ${column}`);
