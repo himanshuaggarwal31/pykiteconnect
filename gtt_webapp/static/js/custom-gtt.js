@@ -27,6 +27,45 @@ window.addEventListener('unhandledrejection', function(event) {
     event.preventDefault();
 });
 
+/**
+ * Calculate percentage change between trigger price and last price
+ * @param {number|string} triggerPrice - The trigger price
+ * @param {number|string} lastPrice - The last/current price
+ * @returns {string} - Formatted percentage change or 'N/A'
+ */
+function calculatePercentageChange(triggerPrice, lastPrice) {
+    if (!triggerPrice || !lastPrice || triggerPrice === 0 || lastPrice === 0) {
+        return 'N/A';
+    }
+    
+    const trigger = parseFloat(triggerPrice);
+    const last = parseFloat(lastPrice);
+    
+    if (isNaN(trigger) || isNaN(last)) {
+        return 'N/A';
+    }
+    
+    const percentChange = ((last - trigger) / trigger) * 100;
+    return percentChange.toFixed(2);
+}
+
+/**
+ * Format percentage change with appropriate styling
+ * @param {string} percentChange - The percentage change value
+ * @returns {string} - HTML formatted percentage change
+ */
+function formatPercentageChange(percentChange) {
+    if (percentChange === 'N/A') {
+        return '<span class="text-muted">N/A</span>';
+    }
+    
+    const value = parseFloat(percentChange);
+    const color = value >= 0 ? 'text-success' : 'text-danger';
+    const sign = value >= 0 ? '+' : '';
+    
+    return `<span class="${color}">${sign}${percentChange}%</span>`;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOMContentLoaded fired - Starting initialization');
     
@@ -305,7 +344,7 @@ function updateOrdersTable(data) {
         console.log('No records found, showing empty state');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td colspan="13" class="text-center py-3">
+            <td colspan="14" class="text-center py-3">
                 <i class="fas fa-info-circle me-2"></i>No orders found. Add a new order to get started.
             </td>
         `;
@@ -398,14 +437,28 @@ function updateOrdersTable(data) {
             `;
         }
         
+        // Calculate percentage change
+        const triggerPrice = order.trigger_price || (order.trigger_values ? order.trigger_values.split(',')[0] : null);
+        const percentChange = calculatePercentageChange(triggerPrice, order.last_price);
+        const percentChangeFormatted = formatPercentageChange(percentChange);
+
+        // Create TradingView link for symbol
+        const exchange = order.exchange || 'NSE';
+        const symbol = order.symbol || 'N/A';
+        const tradingViewUrl = `https://in.tradingview.com/chart/?symbol=${exchange}:${symbol}`;
+        const symbolWithLink = symbol !== 'N/A' ? 
+            `<a href="#" onclick="openTradingViewPopup('${tradingViewUrl}', '${symbol}'); return false;" class="symbol-link" title="View ${symbol} chart on TradingView">${symbol}</a>` : 
+            symbol;
+
         tr.innerHTML = `
             <td><input type="checkbox" class="order-select" value="${order.id || ''}" ${order.placed_on_kite ? 'disabled' : ''} onchange="handleCheckboxChange()"></td>
-            <td>${order.symbol || 'N/A'}</td>
+            <td>${symbolWithLink}</td>
             <td class="company-column">${order.company_name ? `<span title="${order.company_name}">${order.company_name.length > 25 ? order.company_name.substring(0, 25) + '...' : order.company_name}</span>` : ''}</td>
             <td>${order.exchange || 'NSE'}</td>
             <td>${order.order_type || 'N/A'}</td>
             <td>${triggerValuesDisplay}</td>
             <td>${order.last_price || 'N/A'}</td>
+            <td class="text-center percentage-change-column">${percentChangeFormatted}</td>
             <td>${order.quantity || 0}</td>
             <td class="text-end">${amountDisplay}</td>
             <td class="text-center">${order.nifty_rank ? order.nifty_rank : '<span class="text-muted">-</span>'}</td>
@@ -460,8 +513,10 @@ function navigateToPage(page) {
     const perPageValue = recordsPerPage.value;
     if (perPageValue === '-1' || perPageValue.toLowerCase() === 'all') {
         params.append('per_page', '1000'); // Use a large number to effectively show all records
-    } else {
+    } else if (perPageValue && perPageValue.trim() !== '') {
         params.append('per_page', perPageValue);
+    } else {
+        params.append('per_page', '25'); // Default fallback
     }
 
     if (searchInput.value) {
@@ -876,30 +931,48 @@ function fetchLastPrice() {
     document.getElementById('fetchPriceBtn').disabled = true;
     
     fetch(`/api/custom-gtt/get-latest-price/${symbol}?exchange=${exchange}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Check if it's a 500 error and provide helpful message
+                if (response.status === 500) {
+                    throw new Error('Server error: Kite connection may not be available. Please check your Kite login status.');
+                } else if (response.status === 404) {
+                    throw new Error(`Symbol ${symbol} not found on ${exchange}`);
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            return response.json();
+        })
         .then(data => {
             // Reset button
-            document.getElementById('fetchPriceBtn').innerHTML = 'Fetch';
+            document.getElementById('fetchPriceBtn').innerHTML = '<i class="fas fa-sync-alt"></i> Fetch';
             document.getElementById('fetchPriceBtn').disabled = false;
             
-            if (data.error) {
-                showToast(data.error, 'error');
+            if (data.success === false || data.error) {
+                showToast(data.error || 'Failed to fetch price', 'error');
                 return;
             }
             
-            document.getElementById('lastPrice').value = data.last_price;
-            showToast(`Last price for ${symbol}: ${formatCurrency(data.last_price)}`, 'success');
-            
-            // Update order amount
-            updateOrderAmount();
+            // Handle both response formats
+            const price = data.latest_price || data.last_price;
+            if (price) {
+                document.getElementById('lastPrice').value = price.toFixed(2);
+                showToast(`Latest price for ${symbol}: ₹${price.toFixed(2)}`, 'success');
+                
+                // Update order amount
+                updateOrderAmount();
+            } else {
+                showToast('No price data received', 'warning');
+            }
         })
         .catch(error => {
             // Reset button
-            document.getElementById('fetchPriceBtn').innerHTML = 'Fetch';
+            document.getElementById('fetchPriceBtn').innerHTML = '<i class="fas fa-sync-alt"></i> Fetch';
             document.getElementById('fetchPriceBtn').disabled = false;
             
             console.error('Error fetching price:', error);
-            showToast('Failed to fetch price', 'error');
+            showToast(error.message || 'Failed to fetch price', 'error');
         });
 }
 
@@ -1336,6 +1409,12 @@ function sortTable(column) {
     // Update header styling
     updateSortHeaders();
     
+    // Special handling for percentage_change column (client-side sorting)
+    if (column === 'percentage_change') {
+        sortTableClientSide(column);
+        return;
+    }
+    
     // Trigger search with current parameters and sort
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
@@ -1368,6 +1447,46 @@ function updateSortHeaders() {
 }
 
 /**
+ * Sort table client-side for calculated columns like percentage_change
+ */
+function sortTableClientSide(column) {
+    const tbody = document.getElementById('customGttTableBody');
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+    
+    rows.sort((a, b) => {
+        let valueA, valueB;
+        
+        if (column === 'percentage_change') {
+            // Get percentage change values from the 8th column (0-indexed: 7)
+            const cellA = a.cells[7]; // percentage change column
+            const cellB = b.cells[7];
+            
+            if (!cellA || !cellB) return 0;
+            
+            // Extract numeric value from the formatted percentage
+            const textA = cellA.textContent.trim();
+            const textB = cellB.textContent.trim();
+            
+            // Handle cases where there's no percentage (N/A, -, etc.)
+            valueA = parseFloat(textA.replace(/[^\d.-]/g, '')) || 0;
+            valueB = parseFloat(textB.replace(/[^\d.-]/g, '')) || 0;
+        }
+        
+        // Apply sort direction
+        const result = valueA - valueB;
+        return currentSortDirection === 'asc' ? result : -result;
+    });
+    
+    // Clear and re-append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    console.log(`Client-side sorted by ${column} (${currentSortDirection})`);
+}
+
+/**
  * Load table data with current filters and sorting
  */
 function loadTableData() {
@@ -1385,8 +1504,10 @@ function loadTableData() {
         const perPageValue = recordsPerPage.value;
         if (perPageValue === '-1' || perPageValue.toLowerCase() === 'all') {
             params.append('per_page', '1000'); // Use a large number to effectively show all records
-        } else {
+        } else if (perPageValue && perPageValue.trim() !== '') {
             params.append('per_page', perPageValue);
+        } else {
+            params.append('per_page', '25'); // Default fallback
         }
     } else {
         params.append('per_page', '25'); // Default if no selector found
@@ -1411,10 +1532,24 @@ function loadTableData() {
     }
     
     fetch(`/api/custom-gtt/orders?${params.toString()}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Handle different HTTP error statuses
+                if (response.status === 500) {
+                    throw new Error('Server error: Database or application issue. Please try again later.');
+                } else if (response.status === 404) {
+                    throw new Error('API endpoint not found. Please check the application configuration.');
+                } else if (response.status === 403) {
+                    throw new Error('Access denied. Please check your authentication.');
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.error) {
-                showToast(data.error, 'error');
+            if (data.success === false || data.error) {
+                showToast(data.error || 'Failed to load orders', 'error');
                 return;
             }
             
@@ -1422,7 +1557,7 @@ function loadTableData() {
         })
         .catch(error => {
             console.error('Error loading table data:', error);
-            showToast('Failed to load data', 'error');
+            showToast(`Failed to load data: ${error.message}`, 'error');
         });
 }
 
@@ -1799,6 +1934,46 @@ function removeGridLayout() {
     }
 }
 
+/**
+ * Open TradingView chart in a popup window
+ */
+function openTradingViewPopup(url, symbol) {
+    // Popup window specifications - increased size for better chart viewing
+    const popupWidth = 1700;
+    const popupHeight = 900;
+    
+    // Calculate center position
+    const left = (screen.width - popupWidth) / 2;
+    const top = (screen.height - popupHeight) / 2;
+    
+    // Popup features
+    const features = [
+        `width=${popupWidth}`,
+        `height=${popupHeight}`,
+        `left=${left}`,
+        `top=${top}`,
+        'resizable=yes',
+        'scrollbars=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Open popup
+    const popup = window.open(url, `tradingview_${symbol}`, features);
+    
+    // Focus the popup window if it opened successfully
+    if (popup) {
+        popup.focus();
+    } else {
+        // Fallback if popup was blocked
+        alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
+        window.open(url, '_blank');
+    }
+}
+
 // Make functions globally available
 window.applyGridLayout = applyGridLayout;
 window.removeGridLayout = removeGridLayout;
+window.openTradingViewPopup = openTradingViewPopup;
