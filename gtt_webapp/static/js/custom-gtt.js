@@ -590,7 +590,7 @@ function updateTotalAmount() {
     rows.forEach(row => {
         const checkbox = row.querySelector('.order-select');
         if (checkbox && checkbox.checked) {
-            const amountCell = row.cells[8]; // Amount column (0-based index)
+            const amountCell = row.cells[9]; // Amount column (0-based index)
             if (amountCell) {
                 const amount = parseFloat(amountCell.textContent.replace(/[^0-9.-]+/g, '')) || 0;
                 total += amount;
@@ -609,7 +609,7 @@ function updateTotalAllAmount() {
     const rows = document.querySelectorAll('#customGttTableBody tr[data-id]');
     
     rows.forEach(row => {
-        const amountCell = row.cells[8]; // Amount column (0-based index)
+        const amountCell = row.cells[9]; // Amount column (0-based index)
         if (amountCell) {
             const amount = parseFloat(amountCell.textContent.replace(/[^0-9.-]+/g, '')) || 0;
             total += amount;

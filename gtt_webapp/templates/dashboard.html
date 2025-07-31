@@ -18,8 +18,47 @@
     vertical-align: middle !important;
     padding: 0.15rem 0.1rem !important;
     border: 0.5px solid #dee2e6;
+    border-left: 1.5px solid #adb5bd !important; /* Enhanced vertical lines */
+    border-right: 1.5px solid #adb5bd !important; /* Enhanced vertical lines */
     font-size: 0.85rem;
     line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* First column - no left border to avoid double border */
+.table-responsive #ordersTable th:first-child,
+.table-responsive #ordersTable td:first-child {
+    border-left: none !important;
+}
+
+/* Last column - no right border to avoid double border */
+.table-responsive #ordersTable th:last-child,
+.table-responsive #ordersTable td:last-child {
+    border-right: none !important;
+}
+
+/* Enhanced row styling for better visibility */
+.table-responsive #ordersTable tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-responsive #ordersTable tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.table-responsive #ordersTable tbody tr:hover {
+    background-color: #e3f2fd !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Header styling for better contrast */
+.table-responsive #ordersTable thead th {
+    background-color: #495057;
+    color: white;
+    font-weight: 600;
+    border-bottom: 2px solid #343a40;
 }
 
 /* Column widths for dashboard table */
@@ -29,6 +68,7 @@
     min-width: 90px !important;
     max-width: 90px !important;
     font-weight: 600;
+    text-align: left !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(2),
@@ -36,7 +76,7 @@
     width: 60px !important; 
     min-width: 60px !important;
     max-width: 60px !important;
-    text-align: center;
+    text-align: center !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(3),
@@ -44,7 +84,7 @@
     width: 50px !important; 
     min-width: 50px !important;
     max-width: 50px !important;
-    text-align: center;
+    text-align: center !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(4),
@@ -52,7 +92,7 @@
     width: 120px !important; 
     min-width: 120px !important;
     max-width: 120px !important;
-    text-align: center;
+    text-align: center !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(5),
@@ -60,7 +100,7 @@
     width: 80px !important; 
     min-width: 80px !important;
     max-width: 80px !important;
-    text-align: right;
+    text-align: right !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(6),
@@ -68,7 +108,7 @@
     width: 80px !important; 
     min-width: 80px !important;
     max-width: 80px !important;
-    text-align: center;
+    text-align: center !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(7),
@@ -76,7 +116,7 @@
     width: 60px !important; 
     min-width: 60px !important;
     max-width: 60px !important;
-    text-align: right;
+    text-align: right !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(8),
@@ -84,7 +124,7 @@
     width: 100px !important; 
     min-width: 100px !important;
     max-width: 100px !important;
-    text-align: right;
+    text-align: right !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(9),
@@ -92,7 +132,7 @@
     width: 80px !important; 
     min-width: 80px !important;
     max-width: 80px !important;
-    text-align: center;
+    text-align: center !important;
 }
 
 .table-responsive #ordersTable thead th:nth-child(10),
@@ -100,7 +140,7 @@
     width: 120px !important; 
     min-width: 120px !important;
     max-width: 120px !important;
-    text-align: center;
+    text-align: center !important;
 }
 
 /* Sortable headers styling */
@@ -132,31 +172,27 @@
     opacity: 1;
 }
 
-/* Controls bar styling */
-.controls-bar {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
+/* Controls bar styling - Simplified container only */
+.controls-container {
+    background-color: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 0.375rem !important;
+    margin-bottom: 1rem !important;
+    padding: 0.75rem !important;
 }
 
-.controls-bar .form-select,
-.controls-bar .form-control {
-    min-width: 150px;
+/* Symbol link styling for TradingView */
+.symbol-link {
+    color: #0d6efd;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: color 0.2s ease;
 }
 
-.search-input-group {
-    flex: 1;
-    max-width: 300px;
-}
-
-.compact-select {
-    min-width: 120px !important;
+.symbol-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
 }
 </style>
 {% endblock %}
@@ -180,53 +216,67 @@
         </div>
     </div>
 
-    <!-- Controls bar for search, filters and length -->
-    <div class="controls-bar">
-        <!-- Search -->
-        <div class="input-group input-group-sm search-input-group">
-            <span class="input-group-text">
-                <i class="fas fa-search"></i>
-            </span>
-            <input type="text" class="form-control" id="dashboardSearch" placeholder="Search orders...">
+    <!-- Controls bar for search, filters and length - Force horizontal layout -->
+    <div class="controls-container">
+        <div style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 0.5rem !important; flex-wrap: nowrap !important;">
+            <!-- Search -->
+            <div style="flex: 0 0 180px !important;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="dashboardSearch" placeholder="Search orders...">
+                </div>
+            </div>
+            
+            <!-- Transaction Type Filter -->
+            <div style="flex: 0 0 110px !important;">
+                <select class="form-select form-select-sm" id="transactionFilter">
+                    <option value="">All Types</option>
+                    <option value="BUY">BUY</option>
+                    <option value="SELL">SELL</option>
+                </select>
+            </div>
+            
+            <!-- Status Filter -->
+            <div style="flex: 0 0 110px !important;">
+                <select class="form-select form-select-sm" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="triggered">Triggered</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="deleted">Deleted</option>
+                </select>
+            </div>
+            
+            <!-- Exchange Filter -->
+            <div style="flex: 0 0 110px !important;">
+                <select class="form-select form-select-sm" id="exchangeFilter">
+                    <option value="">All Exchanges</option>
+                    <option value="NSE">NSE</option>
+                    <option value="BSE">BSE</option>
+                </select>
+            </div>
+            
+            <!-- Records per page -->
+            <div style="flex: 0 0 70px !important;">
+                <select class="form-select form-select-sm" id="dashboardLength">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="-1" selected>All</option>
+                </select>
+            </div>
+            
+            <!-- Refresh button -->
+            <div style="flex: 0 0 auto !important;">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTable" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
         </div>
-        
-        <!-- Transaction Type Filter -->
-        <select class="form-select form-select-sm compact-select" id="transactionFilter">
-            <option value="">All Types</option>
-            <option value="BUY">BUY</option>
-            <option value="SELL">SELL</option>
-        </select>
-        
-        <!-- Status Filter -->
-        <select class="form-select form-select-sm compact-select" id="statusFilter">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="triggered">Triggered</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="rejected">Rejected</option>
-            <option value="deleted">Deleted</option>
-        </select>
-        
-        <!-- Exchange Filter -->
-        <select class="form-select form-select-sm compact-select" id="exchangeFilter">
-            <option value="">All Exchanges</option>
-            <option value="NSE">NSE</option>
-            <option value="BSE">BSE</option>
-        </select>
-        
-        <!-- Records per page -->
-        <select class="form-select form-select-sm compact-select" id="dashboardLength">
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="-1" selected>All</option>
-        </select>
-        
-        <!-- Refresh button -->
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTable" title="Refresh">
-            <i class="fas fa-sync-alt"></i>
-        </button>
     </div>
 
     {% if error %}
@@ -274,34 +324,34 @@
             <table class="table table-hover table-compact" id="ordersTable">
                 <thead>
                     <tr>
-                        <th class="sortable" data-column="symbol">
+                        <th class="text-start sortable" data-column="symbol">
                             Symbol <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="exchange">
+                        <th class="text-center sortable" data-column="exchange">
                             Exch <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="type">
+                        <th class="text-center sortable" data-column="type">
                             Type <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="trigger_values">
+                        <th class="text-center sortable" data-column="trigger_values">
                             Trigger Values <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="last_price">
+                        <th class="text-end sortable" data-column="last_price">
                             Last Price <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="transaction_type">
+                        <th class="text-center sortable" data-column="transaction_type">
                             Transaction <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="quantity">
+                        <th class="text-end sortable" data-column="quantity">
                             Qty <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="amount">
+                        <th class="text-end sortable" data-column="amount">
                             Amount <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th class="sortable" data-column="status">
+                        <th class="text-center sortable" data-column="status">
                             Status <i class="fas fa-sort sort-icon"></i>
                         </th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -309,7 +359,13 @@
                     <tr data-transaction="{{ order.orders[0].transaction_type }}" 
                         data-status="{{ order.status }}" 
                         data-exchange="{{ order.condition.exchange }}">
-                        <td class="text-center">{{ order.condition.tradingsymbol }}</td>
+                        <td class="text-start">
+                            <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol={{ order.condition.exchange }}:{{ order.condition.tradingsymbol }}', '{{ order.condition.tradingsymbol }}'); return false;" 
+                               class="symbol-link" 
+                               title="View {{ order.condition.tradingsymbol }} chart on TradingView">
+                                {{ order.condition.tradingsymbol }}
+                            </a>
+                        </td>
                         <td class="text-center">{{ order.condition.exchange }}</td>
                         <td class="text-center">{{ order.type }}</td>
                         <td class="text-center">{{ ', '.join(order.condition.trigger_values|map('string')) }}</td>
@@ -467,6 +523,45 @@ function deleteOrder(orderId) {
         });
     } else {
         console.log('[DEBUG] User cancelled deletion of order:', orderId);
+    }
+}
+
+/**
+ * Open TradingView chart in a popup window
+ */
+function openTradingViewPopup(url, symbol) {
+    // Popup window specifications - increased size for better chart viewing
+    const popupWidth = 1700;
+    const popupHeight = 900;
+    
+    // Calculate center position
+    const left = (screen.width - popupWidth) / 2;
+    const top = (screen.height - popupHeight) / 2;
+    
+    // Popup features
+    const features = [
+        `width=${popupWidth}`,
+        `height=${popupHeight}`,
+        `left=${left}`,
+        `top=${top}`,
+        'resizable=yes',
+        'scrollbars=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Open popup
+    const popup = window.open(url, `tradingview_${symbol}`, features);
+    
+    // Focus the popup window if it opened successfully
+    if (popup) {
+        popup.focus();
+    } else {
+        // Fallback if popup was blocked
+        alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
+        window.open(url, '_blank');
     }
 }
 
