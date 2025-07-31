@@ -12,6 +12,21 @@ function initializeEventListeners() {
     document.getElementById('fetchDataBtn').addEventListener('click', fetchDataFromDB);
     document.getElementById('loadCachedBtn').addEventListener('click', loadCachedData);
     document.getElementById('globalSearch').addEventListener('input', performGlobalSearch);
+    
+    // Add event delegation for toggle buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.query-header')) {
+            const header = e.target.closest('.query-header');
+            const queryId = header.getAttribute('data-query-id');
+            if (queryId) {
+                console.log('Toggling query:', queryId);
+                toggleQuery(queryId);
+            }
+        }
+    });
+    
+    // Make toggleQuery available globally for both approaches
+    window.toggleQuery = toggleQuery;
 }
 
 function showLoading(message = 'Processing...') {
@@ -20,7 +35,14 @@ function showLoading(message = 'Processing...') {
 }
 
 function hideLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
+    console.log('hideLoading called');
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        console.log('Loading overlay hidden');
+    } else {
+        console.error('Loading overlay element not found');
+    }
 }
 
 function showToast(message, type = 'info') {
@@ -111,6 +133,9 @@ function updateLastFetch(cacheInfo) {
 function displayResults() {
     const container = document.getElementById('resultsContainer');
     
+    // Force hide loading overlay when displaying results
+    hideLoading();
+    
     if (filteredResults.length === 0) {
         container.innerHTML = `
             <div class="text-center text-muted py-5">
@@ -128,7 +153,7 @@ function displayResults() {
         
         html += `
             <div class="query-section">
-                <div class="query-header" onclick="toggleQuery('${queryId}')">
+                <div class="query-header" data-query-id="${queryId}" style="cursor: pointer;">
                     <div>
                         <strong>${result.query_name}</strong>
                         <span class="badge bg-light text-dark ms-2">${result.row_count} rows</span>
@@ -154,6 +179,23 @@ function displayResults() {
     });
     
     container.innerHTML = html;
+    
+    // Ensure all tables start in collapsed state
+    initializeTableStates();
+}
+
+function initializeTableStates() {
+    // Set all query content divs to be explicitly hidden
+    const queryContents = document.querySelectorAll('.query-content');
+    queryContents.forEach(content => {
+        content.style.display = 'none';
+    });
+    
+    // Ensure all chevron icons are pointing down
+    const chevronIcons = document.querySelectorAll('[id$="-icon"]');
+    chevronIcons.forEach(icon => {
+        icon.className = 'fas fa-chevron-down';
+    });
 }
 
 function generateTableRows(rows, columns) {
@@ -175,15 +217,33 @@ function generateTableRows(rows, columns) {
 }
 
 function toggleQuery(queryId) {
+    console.log('toggleQuery called with:', queryId);
     const content = document.getElementById(queryId);
     const icon = document.getElementById(queryId + '-icon');
     
-    if (content.classList.contains('show')) {
-        content.classList.remove('show');
+    console.log('Found content element:', content);
+    console.log('Found icon element:', icon);
+    
+    if (!content || !icon) {
+        console.error('Could not find elements for queryId:', queryId);
+        return;
+    }
+    
+    // Check actual computed display style, not just inline style
+    const computedDisplay = window.getComputedStyle(content).display;
+    const isVisible = computedDisplay === 'block' && content.style.display !== 'none';
+    
+    if (isVisible) {
+        content.style.display = 'none';
         icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+        console.log('Collapsed:', queryId);
     } else {
-        content.classList.add('show');
+        content.style.display = 'block';
+        content.style.background = 'white';
+        content.style.border = 'none';
+        content.style.padding = '0';
         icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+        console.log('Expanded:', queryId);
     }
 }
 

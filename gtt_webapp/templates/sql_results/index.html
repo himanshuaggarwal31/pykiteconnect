@@ -27,21 +27,33 @@
     padding: 10px 15px;
     cursor: pointer;
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
+    user-select: none;
 }
 
 .query-header:hover {
     background: #343a40;
 }
 
-.query-content {
-    display: none;
+.query-section .query-content {
+    display: none !important;
     background: white;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-height: 0;
 }
 
-.query-content.show {
-    display: block;
+.query-section .query-content.show {
+    display: block !important;
+    max-height: none !important;
+    border: 2px solid red !important;
+    background: yellow !important;
+    padding: 15px !important;
+}
+
+.query-header i {
+    transition: transform 0.3s ease;
 }
 
 .table-wrapper {
