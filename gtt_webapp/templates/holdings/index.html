@@ -66,6 +66,20 @@
 .instrument-info {
     font-size: 0.875rem;
     color: #6c757d;
+    display: none; /* Hide instrument token and product info */
+}
+
+.symbol-link {
+    color: #0d6efd;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.symbol-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
 }
 
 .refresh-btn {
@@ -190,6 +204,10 @@
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportHoldings()">
                 <i class="fas fa-download me-1"></i>Export
+            </button>
+            <!-- Debug: Test TradingView Button -->
+            <button type="button" class="btn btn-outline-success btn-sm" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=NSE:RELIANCE', 'RELIANCE')">
+                <i class="fas fa-chart-line me-1"></i>Test TradingView
             </button>
         </div>
     </div>
@@ -346,7 +364,13 @@
                             data-symbol="{{ holding.tradingsymbol }}">
                             <td class="text-start">
                                 <div>
-                                    <strong>{{ holding.tradingsymbol }}</strong>
+                                    <strong>
+                                        <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol={{ holding.exchange }}:{{ holding.tradingsymbol }}', '{{ holding.tradingsymbol }}'); return false;" 
+                                           class="symbol-link" 
+                                           title="View {{ holding.tradingsymbol }} chart on TradingView">
+                                            {{ holding.tradingsymbol }}
+                                        </a>
+                                    </strong>
                                     <div class="instrument-info">
                                         {{ holding.instrument_token }} • {{ holding.product }}
                                     </div>
@@ -386,6 +410,76 @@
                             </td>
                         </tr>
                         {% endfor %}
+                    {% else %}
+                        <!-- Test data for debugging TradingView functionality -->
+                        <tr class="holding-row" data-exchange="NSE" data-symbol="RELIANCE">
+                            <td class="text-start">
+                                <div>
+                                    <strong>
+                                        <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=NSE:RELIANCE', 'RELIANCE'); return false;" 
+                                           class="symbol-link" 
+                                           title="View RELIANCE chart on TradingView">
+                                            RELIANCE
+                                        </a>
+                                    </strong>
+                                    <div class="instrument-info">
+                                        123456 • CNC
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">NSE</td>
+                            <td class="text-center">10</td>
+                            <td class="text-center">₹2500.00</td>
+                            <td class="text-center">₹2600.00</td>
+                            <td class="text-center">₹25000.00</td>
+                            <td class="text-center">₹26000.00</td>
+                            <td class="text-center">
+                                <span class="pnl-badge profit">₹1000.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="profit">4.00%</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="pnl-badge profit">₹50.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="profit">1.96%</span>
+                            </td>
+                        </tr>
+                        <tr class="holding-row" data-exchange="NSE" data-symbol="TCS">
+                            <td class="text-start">
+                                <div>
+                                    <strong>
+                                        <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=NSE:TCS', 'TCS'); return false;" 
+                                           class="symbol-link" 
+                                           title="View TCS chart on TradingView">
+                                            TCS
+                                        </a>
+                                    </strong>
+                                    <div class="instrument-info">
+                                        789012 • CNC
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">NSE</td>
+                            <td class="text-center">5</td>
+                            <td class="text-center">₹3800.00</td>
+                            <td class="text-center">₹3750.00</td>
+                            <td class="text-center">₹19000.00</td>
+                            <td class="text-center">₹18750.00</td>
+                            <td class="text-center">
+                                <span class="pnl-badge loss">-₹250.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="loss">-1.32%</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="pnl-badge loss">-₹25.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="loss">-0.66%</span>
+                            </td>
+                        </tr>
                     {% endif %}
                 </tbody>
             </table>
@@ -720,7 +814,13 @@ function createHoldingRow(holding) {
     row.innerHTML = `
         <td class="text-start">
             <div>
-                <strong>${holding.tradingsymbol}</strong>
+                <strong>
+                    <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=${holding.exchange}:${holding.tradingsymbol}', '${holding.tradingsymbol}'); return false;" 
+                       class="symbol-link" 
+                       title="View ${holding.tradingsymbol} chart on TradingView">
+                        ${holding.tradingsymbol}
+                    </a>
+                </strong>
                 <div class="instrument-info">
                     ${holding.instrument_token} • ${holding.product}
                 </div>
@@ -1000,6 +1100,45 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+/**
+ * Open TradingView chart in a popup window
+ */
+function openTradingViewPopup(url, symbol) {
+    // Popup window specifications - increased size for better chart viewing
+    const popupWidth = 1700;
+    const popupHeight = 900;
+    
+    // Calculate center position
+    const left = (screen.width - popupWidth) / 2;
+    const top = (screen.height - popupHeight) / 2;
+    
+    // Popup features
+    const features = [
+        `width=${popupWidth}`,
+        `height=${popupHeight}`,
+        `left=${left}`,
+        `top=${top}`,
+        'resizable=yes',
+        'scrollbars=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Open popup
+    const popup = window.open(url, `tradingview_${symbol}`, features);
+    
+    // Focus the popup window if it opened successfully
+    if (popup) {
+        popup.focus();
+    } else {
+        // Fallback if popup was blocked
+        alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
+        window.open(url, '_blank');
+    }
 }
 </script>
 {% endblock %}
