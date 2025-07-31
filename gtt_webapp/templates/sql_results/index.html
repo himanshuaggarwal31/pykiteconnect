@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}SQL Results - GTT Orders{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom-gtt.css') }}">
+<style>
+.controls-bar {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.query-section {
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.query-header {
+    background: #495057;
+    color: white;
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.query-header:hover {
+    background: #343a40;
+}
+
+.query-section .query-content {
+    display: none !important;
+    background: white;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-height: 0;
+}
+
+.query-section .query-content.show {
+    display: block !important;
+    max-height: none !important;
+    border: 2px solid red !important;
+    background: yellow !important;
+    padding: 15px !important;
+}
+
+.query-header i {
+    transition: transform 0.3s ease;
+}
+
+.table-wrapper {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.symbol-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.symbol-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Main header -->
+    <div class="page-header">
+        <div>
+            <h2>
+                <i class="fas fa-database"></i> SQL Results
+            </h2>
+        </div>
+        <div class="btn-toolbar">
+            <button type="button" class="btn btn-primary" id="fetchDataBtn">
+                <i class="fas fa-download me-2"></i>Fetch Data
+            </button>
+            <button type="button" class="btn btn-success" id="loadCachedBtn">
+                <i class="fas fa-folder-open me-2"></i>Load Cache
+            </button>
+        </div>
+    </div>
+
+    <!-- Simple controls -->
+    <div class="controls-bar">
+        <div class="row align-items-center">
+            <div class="col-md-3">
+                <label class="form-label small">Nifty Rank:</label>
+                <input type="number" class="form-control form-control-sm" id="niftyRankInput" value="600" min="1" max="1000">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small">Search:</label>
+                <input type="text" class="form-control form-control-sm" id="globalSearch" placeholder="Search all tables...">
+            </div>
+            <div class="col-md-3 text-end">
+                <span class="badge bg-secondary" id="lastFetch">No data</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div id="resultsContainer">
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-database fa-3x mb-3"></i>
+            <h4>No Data Available</h4>
+            <p>Click "Fetch Data" to load from database or "Load Cache" to view saved results.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 id="loadingMessage">Processing...</h5>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sql-results.js') }}"></script>
+{% endblock %}

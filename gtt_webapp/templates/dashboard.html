@@ -1,6 +1,165 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard - GTT Orders{% endblock %}
+{% block title %}Dashboard - Kite GTT Orders{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom-gtt.css') }}">
+<style>
+/* Dashboard-specific table styling to match custom-gtt */
+.table-responsive #ordersTable {
+    table-layout: fixed !important;
+    width: 100% !important;
+    border-collapse: collapse;
+}
+
+.table-responsive #ordersTable th,
+.table-responsive #ordersTable td {
+    vertical-align: middle !important;
+    padding: 0.15rem 0.1rem !important;
+    border: 0.5px solid #dee2e6;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+/* Column widths for dashboard table */
+.table-responsive #ordersTable thead th:nth-child(1),
+.table-responsive #ordersTable tbody td:nth-child(1) { 
+    width: 90px !important; 
+    min-width: 90px !important;
+    max-width: 90px !important;
+    font-weight: 600;
+}
+
+.table-responsive #ordersTable thead th:nth-child(2),
+.table-responsive #ordersTable tbody td:nth-child(2) { 
+    width: 60px !important; 
+    min-width: 60px !important;
+    max-width: 60px !important;
+    text-align: center;
+}
+
+.table-responsive #ordersTable thead th:nth-child(3),
+.table-responsive #ordersTable tbody td:nth-child(3) { 
+    width: 50px !important; 
+    min-width: 50px !important;
+    max-width: 50px !important;
+    text-align: center;
+}
+
+.table-responsive #ordersTable thead th:nth-child(4),
+.table-responsive #ordersTable tbody td:nth-child(4) { 
+    width: 120px !important; 
+    min-width: 120px !important;
+    max-width: 120px !important;
+    text-align: center;
+}
+
+.table-responsive #ordersTable thead th:nth-child(5),
+.table-responsive #ordersTable tbody td:nth-child(5) { 
+    width: 80px !important; 
+    min-width: 80px !important;
+    max-width: 80px !important;
+    text-align: right;
+}
+
+.table-responsive #ordersTable thead th:nth-child(6),
+.table-responsive #ordersTable tbody td:nth-child(6) { 
+    width: 80px !important; 
+    min-width: 80px !important;
+    max-width: 80px !important;
+    text-align: center;
+}
+
+.table-responsive #ordersTable thead th:nth-child(7),
+.table-responsive #ordersTable tbody td:nth-child(7) { 
+    width: 60px !important; 
+    min-width: 60px !important;
+    max-width: 60px !important;
+    text-align: right;
+}
+
+.table-responsive #ordersTable thead th:nth-child(8),
+.table-responsive #ordersTable tbody td:nth-child(8) { 
+    width: 100px !important; 
+    min-width: 100px !important;
+    max-width: 100px !important;
+    text-align: right;
+}
+
+.table-responsive #ordersTable thead th:nth-child(9),
+.table-responsive #ordersTable tbody td:nth-child(9) { 
+    width: 80px !important; 
+    min-width: 80px !important;
+    max-width: 80px !important;
+    text-align: center;
+}
+
+.table-responsive #ordersTable thead th:nth-child(10),
+.table-responsive #ordersTable tbody td:nth-child(10) { 
+    width: 120px !important; 
+    min-width: 120px !important;
+    max-width: 120px !important;
+    text-align: center;
+}
+
+/* Sortable headers styling */
+.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: #f8f9fa;
+}
+
+.sort-icon {
+    margin-left: 5px;
+    opacity: 0.6;
+    font-size: 0.7rem;
+}
+
+.sortable.sort-asc .sort-icon:before {
+    content: "\f0de"; /* fa-sort-up */
+    color: #007bff;
+    opacity: 1;
+}
+
+.sortable.sort-desc .sort-icon:before {
+    content: "\f0dd"; /* fa-sort-down */
+    color: #007bff;
+    opacity: 1;
+}
+
+/* Controls bar styling */
+.controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.controls-bar .form-select,
+.controls-bar .form-control {
+    min-width: 150px;
+}
+
+.search-input-group {
+    flex: 1;
+    max-width: 300px;
+}
+
+.compact-select {
+    min-width: 120px !important;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
@@ -8,7 +167,7 @@
     <div class="page-header">
         <div>
             <h2>
-                <i class="fas fa-chart-line"></i>GTT Orders Dashboard
+                <i class="fas fa-chart-line"></i>Kite GTT Orders Dashboard
             </h2>
         </div>
         <div class="btn-toolbar">
@@ -22,71 +181,52 @@
     </div>
 
     <!-- Controls bar for search, filters and length -->
-    <div class="controls-bar mb-3">
-        <div class="row g-2">
-            <div class="col-md-3">
-                <!-- Search -->
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" class="form-control" id="dashboardSearch" placeholder="Search table...">
-                </div>
-            </div>
-            <div class="col-md-2">
-                <!-- Transaction Type Filter -->
-                <select class="form-select form-select-sm" id="transactionFilter">
-                    <option value="">All Types</option>
-                    <option value="BUY">BUY</option>
-                    <option value="SELL">SELL</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <!-- Status Filter -->
-                <select class="form-select form-select-sm" id="statusFilter">
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="triggered">Triggered</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="deleted">Deleted</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <!-- Exchange Filter -->
-                <select class="form-select form-select-sm" id="exchangeFilter">
-                    <option value="">All Exchanges</option>
-                    <option value="NSE">NSE</option>
-                    <option value="BSE">BSE</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <!-- Length selector -->
-                <select class="form-select form-select-sm" id="dashboardLength">
-                    <option value="10">10 rows</option>
-                    <option value="25">25 rows</option>
-                    <option value="50">50 rows</option>
-                    <option value="100">100 rows</option>
-                    <option value="-1" selected>All rows</option>
-                </select>
-            </div>
-            <div class="col-md-1">
-                <!-- Table density and refresh controls -->
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="compactView" 
-                            onclick="setTableDensity('compact')" title="Compact View">
-                        <i class="fas fa-compress-alt"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="normalView" 
-                            onclick="setTableDensity('normal')" title="Normal View">
-                        <i class="fas fa-expand-alt"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTable" title="Refresh">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-            </div>
+    <div class="controls-bar">
+        <!-- Search -->
+        <div class="input-group input-group-sm search-input-group">
+            <span class="input-group-text">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" class="form-control" id="dashboardSearch" placeholder="Search orders...">
         </div>
+        
+        <!-- Transaction Type Filter -->
+        <select class="form-select form-select-sm compact-select" id="transactionFilter">
+            <option value="">All Types</option>
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+        </select>
+        
+        <!-- Status Filter -->
+        <select class="form-select form-select-sm compact-select" id="statusFilter">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="triggered">Triggered</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="rejected">Rejected</option>
+            <option value="deleted">Deleted</option>
+        </select>
+        
+        <!-- Exchange Filter -->
+        <select class="form-select form-select-sm compact-select" id="exchangeFilter">
+            <option value="">All Exchanges</option>
+            <option value="NSE">NSE</option>
+            <option value="BSE">BSE</option>
+        </select>
+        
+        <!-- Records per page -->
+        <select class="form-select form-select-sm compact-select" id="dashboardLength">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="-1" selected>All</option>
+        </select>
+        
+        <!-- Refresh button -->
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTable" title="Refresh">
+            <i class="fas fa-sync-alt"></i>
+        </button>
     </div>
 
     {% if error %}
@@ -134,16 +274,34 @@
             <table class="table table-hover table-compact" id="ordersTable">
                 <thead>
                     <tr>
-                        <th class="text-center">Symbol</th>
-                        <th class="text-center">Exchange</th>
-                        <th class="text-center">Type</th>
-                        <th class="text-center">Trigger Values</th>
-                        <th class="text-center">Last Price</th>
-                        <th class="text-center">Transaction</th>
-                        <th class="text-center">Quantity</th>
-                        <th class="text-center">Amount</th>
-                        <th class="text-center">Status</th>
-                        <th class="text-center">Actions</th>
+                        <th class="sortable" data-column="symbol">
+                            Symbol <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="exchange">
+                            Exch <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="type">
+                            Type <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="trigger_values">
+                            Trigger Values <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="last_price">
+                            Last Price <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="transaction_type">
+                            Transaction <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="quantity">
+                            Qty <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="amount">
+                            Amount <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="sortable" data-column="status">
+                            Status <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
