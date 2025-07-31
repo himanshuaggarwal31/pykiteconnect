@@ -29,3 +29,6 @@ python .\run.py
 .\venv\Scripts\Activate.ps1
 python .\app\AutoConnect.py
 python .\gtt_webapp\run.py
+
+
+git clean -fd ; git restore .
