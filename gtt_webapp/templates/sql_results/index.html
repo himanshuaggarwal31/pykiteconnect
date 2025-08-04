@@ -15,7 +15,7 @@
 }
 
 .query-section {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     overflow: hidden;
@@ -24,12 +24,13 @@
 .query-header {
     background: #495057;
     color: white;
-    padding: 10px 15px;
+    padding: 8px 12px;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
     user-select: none;
+    font-size: 0.9rem;
 }
 
 .query-header:hover {
@@ -49,7 +50,7 @@
     max-height: none !important;
     border: 2px solid red !important;
     background: yellow !important;
-    padding: 15px !important;
+    padding: 10px !important;
 }
 
 .query-header i {
@@ -57,8 +58,15 @@
 }
 
 .table-wrapper {
-    max-height: 400px;
+    max-height: 350px;
     overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.table-wrapper .table {
+    margin-bottom: 0;
 }
 
 .symbol-link {
@@ -90,6 +98,134 @@
     padding: 30px;
     border-radius: 10px;
     text-align: center;
+}
+
+/* Ultra-compact table styles - Force override Bootstrap */
+.table-compact {
+    font-size: 0.65rem !important;
+    margin-bottom: 0.5rem !important;
+    table-layout: fixed !important;
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+.table-compact th,
+.table-compact td {
+    padding: 0.05rem 0.1rem !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    border: 1px solid #dee2e6 !important;
+    line-height: 1 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 0 !important;
+}
+
+.table-compact th {
+    font-size: 0.6rem !important;
+    font-weight: 600 !important;
+    background-color: #f8f9fa !important;
+    padding: 0.05rem 0.1rem !important;
+}
+
+.table-compact .btn {
+    padding: 0.05rem 0.1rem !important;
+    font-size: 0.55rem !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    min-width: auto !important;
+    border-radius: 0.1rem !important;
+}
+
+.table-compact .btn-group {
+    gap: 1px !important;
+    display: flex !important;
+}
+
+.table-compact .btn i {
+    font-size: 0.45rem !important;
+}
+
+/* Force exact column widths */
+.table-compact th:nth-child(1), .table-compact td:nth-child(1) { 
+    width: 6% !important; 
+    max-width: 40px !important;
+    min-width: 40px !important;
+}  /* Symbol */
+
+.table-compact th:nth-child(2), .table-compact td:nth-child(2) { 
+    width: 8% !important; 
+    max-width: 55px !important;
+    min-width: 55px !important;
+} /* Current Date */
+
+.table-compact th:nth-child(3), .table-compact td:nth-child(3) { 
+    width: 8% !important; 
+    max-width: 55px !important;
+    min-width: 55px !important;
+} /* Referred Date */
+
+.table-compact th:nth-child(4), .table-compact td:nth-child(4) { 
+    width: 6% !important; 
+    max-width: 40px !important;
+    min-width: 40px !important;
+}  /* Current Price */
+
+.table-compact th:nth-child(5), .table-compact td:nth-child(5) { 
+    width: 6% !important; 
+    max-width: 40px !important;
+    min-width: 40px !important;
+}  /* Referred Price */
+
+.table-compact th:nth-child(6), .table-compact td:nth-child(6) { 
+    width: 4% !important; 
+    max-width: 30px !important;
+    min-width: 30px !important;
+}  /* Days Gap */
+
+.table-compact th:nth-child(7), .table-compact td:nth-child(7) { 
+    width: 4% !important; 
+    max-width: 30px !important;
+    min-width: 30px !important;
+}  /* PCT Down */
+
+.table-compact th:nth-child(8), .table-compact td:nth-child(8) { 
+    width: 4% !important; 
+    max-width: 30px !important;
+    min-width: 30px !important;
+}  /* Nifty Rank */
+
+.table-compact th:nth-child(9), .table-compact td:nth-child(9) { 
+    width: 3% !important; 
+    max-width: 25px !important;
+    min-width: 25px !important;
+}  /* RNK */
+
+.table-compact th:nth-child(10), .table-compact td:nth-child(10) { 
+    width: 12% !important; 
+    max-width: 70px !important;
+    min-width: 70px !important;
+    text-align: center !important;
+} /* Actions */
+
+/* Text alignment for numeric columns */
+.table-compact td:nth-child(4),
+.table-compact td:nth-child(5),
+.table-compact td:nth-child(6),
+.table-compact td:nth-child(7),
+.table-compact td:nth-child(8),
+.table-compact td:nth-child(9) {
+    text-align: right !important;
+}
+
+/* Remove default Bootstrap table styling conflicts */
+.table-compact.table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: rgba(0,0,0,.01) !important;
+}
+
+.table-compact.table-hover > tbody > tr:hover > td {
+    background-color: rgba(0,0,0,.03) !important;
 }
 </style>
 {% endblock %}
@@ -145,6 +281,132 @@
     <div class="loading-content">
         <div class="spinner-border text-primary mb-3" role="status"></div>
         <h5 id="loadingMessage">Processing...</h5>
+    </div>
+</div>
+
+<!-- Sell Type Modal -->
+<div class="modal fade" id="sellTypeModal" tabindex="-1" aria-labelledby="sellTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sellTypeModalLabel">Choose Sell Order Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Choose a sell order type for <strong id="sellSymbolDisplay"></strong>:</p>
+                <div class="d-grid gap-3">
+                    <button type="button" class="btn btn-outline-danger" onclick="handleSellTypeChoice('single')">
+                        <i class="fas fa-arrow-up me-2"></i>Single-Leg (Simple)
+                        <div class="small text-muted mt-1">Sell when price rises above trigger</div>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="handleSellTypeChoice('two-leg')">
+                        <i class="fas fa-arrows-alt-v me-2"></i>Two-Leg (Target & Stop Loss)
+                        <div class="small text-muted mt-1">Sell at either target price or stop loss</div>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GTT Order Modal -->
+<div class="modal fade" id="gttOrderModal" tabindex="-1" aria-labelledby="gttOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="gttOrderModalLabel">Add GTT Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="gttOrderForm">
+                    <!-- Hidden fields for order data -->
+                    <input type="hidden" id="orderSymbol" name="symbol">
+                    <input type="hidden" id="orderCompanyName" name="company_name">
+                    <input type="hidden" id="orderNiftyRank" name="nifty_rank">
+                    <input type="hidden" id="orderType" name="order_type">
+                    <input type="hidden" id="orderTriggerType" name="trigger_type">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="orderSymbolDisplay" class="form-label">Symbol</label>
+                            <input type="text" class="form-control" id="orderSymbolDisplay" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="orderCompanyNameDisplay" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="orderCompanyNameDisplay" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="orderTriggerTypeDisplay" class="form-label">Trigger Type</label>
+                            <select class="form-select" id="orderTriggerTypeDisplay" name="trigger_type" onchange="toggleTriggerFields()">
+                                <option value="single">Single (One Price Point)</option>
+                                <option value="two-leg">Two-Leg (Target & Stop Loss)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="orderLastPrice" class="form-label">Last Price</label>
+                            <input type="number" class="form-control" id="orderLastPrice" name="last_price" step="0.01">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="orderQuantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="orderQuantity" name="quantity" min="1" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Single trigger fields -->
+                    <div id="singleTriggerFields">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="orderTriggerPrice" class="form-label">Trigger Price</label>
+                                <input type="number" class="form-control" id="orderTriggerPrice" name="trigger_price" step="0.01">
+                                <small class="form-text text-muted">
+                                    For BUY: Set below market price. For SELL: Set above market price.
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Empty column for layout balance -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Two-leg trigger fields -->
+                    <div id="twoLegTriggerFields" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="orderTargetPrice" class="form-label">Target Price</label>
+                                <input type="number" class="form-control" id="orderTargetPrice" name="target_price" step="0.01">
+                                <small class="form-text text-muted">
+                                    Price at which to book profit.
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="orderStopLoss" class="form-label">Stop Loss Price</label>
+                                <input type="number" class="form-control" id="orderStopLoss" name="stop_loss" step="0.01">
+                                <small class="form-text text-muted">
+                                    Price at which to cut losses.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label for="orderNotes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="orderNotes" name="notes" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveGttOrder()">Save Order</button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

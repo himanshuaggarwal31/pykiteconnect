@@ -67,6 +67,10 @@ def dashboard():
             
         return render_template('dashboard.html', orders=[], error=True)
 
+@main_bp.route('/test-sql-results-gtt')
+def test_sql_results_gtt():
+    return render_template('test_sql_results_gtt.html')
+
 @main_bp.route('/order/<int:trigger_id>')
 def order_detail(trigger_id):
     try:

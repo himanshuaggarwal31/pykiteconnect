@@ -157,12 +157,17 @@ def create_app():
     from blueprints.custom_gtt import custom_gtt_bp
     from blueprints.api.custom_gtt import custom_gtt_api
     from blueprints.api.debug import debug_api
+    from blueprints.api.sql_results_gtt import sql_results_gtt_api
+    from blueprints.debug import debug_bp
 
     # First, register API blueprints with api_bp BEFORE registering api_bp with app
     try:
         # Make sure to give each sub-blueprint a unique name using the name parameter
         api_bp.register_blueprint(custom_gtt_api, url_prefix='/custom-gtt')
         logger.info(f"Registered custom_gtt_api blueprint within api_bp with prefix '/custom-gtt'")
+        
+        api_bp.register_blueprint(sql_results_gtt_api, url_prefix='/sql-results-gtt')
+        logger.info(f"Registered sql_results_gtt_api blueprint within api_bp with prefix '/sql-results-gtt'")
         
         api_bp.register_blueprint(debug_api)
         logger.info(f"Registered debug_api blueprint within api_bp")
@@ -191,6 +196,9 @@ def create_app():
     
     app.register_blueprint(custom_gtt_bp)
     logger.debug("Registered custom_gtt_bp blueprint.")
+    
+    app.register_blueprint(debug_bp)
+    logger.debug("Registered debug_bp blueprint.")
 
     # Configure assets
     css = Bundle('css/style.css', filters='cssmin', output='gen/packed.css')
