@@ -43,5 +43,5 @@ git clean -fd ; git restore .
 ----------
 
 git add .  
-git commit -m "minor enhancements holding_sell_action implemented"     
+git commit -m "minor enhancements holding_sell_action implemented with check"     
 git push   

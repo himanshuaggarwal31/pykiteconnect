@@ -247,3 +247,63 @@ def sell_gtt_order():
     except Exception as e:
         logger.error(f"Error placing GTT sell order: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+@holdings_bp.route('/api/check-gtt-exists-bulk', methods=['POST'])
+def check_gtt_exists_bulk():
+    """Check if GTT orders exist for multiple symbols using Oracle database lookup"""
+    try:
+        data = request.get_json()
+        symbols = data.get('symbols', [])
+        
+        if not symbols:
+            return jsonify({'error': 'No symbols provided'}), 400
+        
+        # Validate symbols format (should be list of dicts with tradingsymbol and exchange)
+        if not all(isinstance(symbol, dict) and 'tradingsymbol' in symbol and 'exchange' in symbol for symbol in symbols):
+            return jsonify({'error': 'Symbols must be objects with tradingsymbol and exchange fields'}), 400
+        
+        # Import Oracle database connection
+        from db_config import get_connection
+        
+        # Connect to Oracle database
+        with get_connection() as connection:
+            cursor = connection.cursor()
+            
+            # Prepare query to check for existing GTT orders
+            # We check for active status only
+            query = """
+                SELECT DISTINCT tradingsymbol, texchange 
+                FROM ADMIN.KITE_GTTS 
+                WHERE tradingsymbol = :tradingsymbol 
+                AND texchange = :exchange 
+                AND status = 'active'
+            """
+            
+            results = {}
+            for symbol in symbols:
+                tradingsymbol = symbol['tradingsymbol']
+                exchange = symbol['exchange']
+                
+                # Execute query for this symbol
+                cursor.execute(query, {
+                    'tradingsymbol': tradingsymbol,
+                    'exchange': exchange
+                })
+                
+                # Check if any records found
+                found_records = cursor.fetchall()
+                symbol_key = f"{exchange}:{tradingsymbol}"
+                results[symbol_key] = len(found_records) > 0
+                
+                logger.debug(f"GTT check for {symbol_key}: {len(found_records)} active GTT orders found")
+        
+        logger.info(f"Bulk GTT existence check completed for {len(symbols)} symbols")
+        
+        return jsonify({
+            'success': True,
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking GTT existence in bulk: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
