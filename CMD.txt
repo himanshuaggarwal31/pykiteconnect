@@ -33,5 +33,15 @@ python .\app\AutoConnect.py
 python .\gtt_webapp\run.py
 
 
+.\venv\Scripts\python.exe .\gtt_webapp\run.py
+
+
 
 git clean -fd ; git restore .
+
+
+----------
+
+git add .  
+git commit -m "minor enhancements seggregated gtt n dasboard"     
+git push   

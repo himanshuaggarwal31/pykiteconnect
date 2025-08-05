@@ -39,21 +39,54 @@ def get_kite_instance():
 @main_bp.route('/')
 @main_bp.route('/dashboard')
 def dashboard():
+    """Simple welcome page for the app"""
+    try:
+        current_app.logger.info("Dashboard route called")
+        kite = get_kite_instance()
+        is_kite_connected = kite is not None
+        current_app.logger.info(f"Kite connected: {is_kite_connected}")
+        
+        # Get basic stats if connected
+        stats = {}
+        if is_kite_connected:
+            try:
+                gtt_orders = kite.get_gtts()
+                stats['total_gtt_orders'] = len(gtt_orders)
+                stats['active_orders'] = len([o for o in gtt_orders if o.get('status') == 'active'])
+            except Exception as e:
+                current_app.logger.warning(f"Could not fetch GTT stats: {str(e)}")
+                stats['total_gtt_orders'] = 0
+                stats['active_orders'] = 0
+        
+        current_app.logger.info(f"Rendering dashboard with stats: {stats}")
+        
+        # Use the dashboard template
+        return render_template('dashboard.html', 
+                             kite_connected=is_kite_connected, 
+                             stats=stats)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in dashboard route: {str(e)}")
+        return f"<h1>Route Error</h1><p>{str(e)}</p>"
+
+@main_bp.route('/kite-gtt-orders')
+def kite_gtt_orders():
+    """Standalone Kite GTT Orders page"""
     try:
         kite = get_kite_instance()
         if kite is None:
-            current_app.logger.warning("KiteConnect is not available in dashboard route")
-            return render_template('dashboard.html', orders=[], error=True)
+            current_app.logger.warning("KiteConnect is not available in kite_gtt_orders route")
+            return render_template('kite_gtt_orders.html', orders=[], error=True)
         
         current_app.logger.debug("Attempting to fetch GTT orders...")
         gtt_orders = kite.get_gtts()
         current_app.logger.info(f"Successfully fetched {len(gtt_orders)} GTT orders")
         
-        return render_template('dashboard.html', orders=gtt_orders, error=False)
+        return render_template('kite_gtt_orders.html', orders=gtt_orders, error=False)
         
     except Exception as e:
         error_msg = str(e)
-        current_app.logger.error(f"Error in dashboard route: {error_msg}", exc_info=True)
+        current_app.logger.error(f"Error in kite_gtt_orders route: {error_msg}", exc_info=True)
         
         # Provide more specific error messages
         if "403" in error_msg or "TokenException" in error_msg:
@@ -65,7 +98,7 @@ def dashboard():
         else:
             flash(f'Error fetching GTT orders: {error_msg}', 'error')
             
-        return render_template('dashboard.html', orders=[], error=True)
+        return render_template('kite_gtt_orders.html', orders=[], error=True)
 
 @main_bp.route('/test-sql-results-gtt')
 def test_sql_results_gtt():
@@ -77,16 +110,16 @@ def order_detail(trigger_id):
         kite = get_kite_instance()
         if kite is None:
             flash('KiteConnect is not available', 'error')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('main.kite_gtt_orders'))
             
         order = next((o for o in kite.get_gtts() if o['id'] == trigger_id), None)
         if order:
             return render_template('order_detail.html', order=order)
         flash('Order not found', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.kite_gtt_orders'))
     except Exception as e:
         flash(f'Error fetching order details: {str(e)}', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.kite_gtt_orders'))
 
 @main_bp.route('/order/delete/<int:trigger_id>', methods=['POST'])
 def delete_order(trigger_id):
@@ -94,20 +127,20 @@ def delete_order(trigger_id):
         kite = get_kite_instance()
         if kite is None:
             flash('KiteConnect is not available', 'error')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('main.kite_gtt_orders'))
             
         kite.delete_gtt(trigger_id=trigger_id)
         flash('Order deleted successfully!', 'success')
     except Exception as e:
         flash(f'Error deleting order: {str(e)}', 'error')
-    return redirect(url_for('main.dashboard'))
+    return redirect(url_for('main.kite_gtt_orders'))
 
 @main_bp.route('/order/edit/<int:trigger_id>', methods=['GET', 'POST'])
 def edit_order(trigger_id):
     kite = get_kite_instance()
     if kite is None:
         flash('KiteConnect is not available', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.kite_gtt_orders'))
     
     if request.method == 'POST':
         try:
@@ -115,7 +148,7 @@ def edit_order(trigger_id):
             current_order = next((o for o in kite.get_gtts() if o['id'] == trigger_id), None)
             if not current_order:
                 flash('Order not found', 'error')
-                return redirect(url_for('main.dashboard'))
+                return redirect(url_for('main.kite_gtt_orders'))
 
             # Prepare data for modification
             trigger_values = [float(x.strip()) for x in request.form['trigger_values'].split(',')]
@@ -141,7 +174,7 @@ def edit_order(trigger_id):
             )
             
             flash('Order updated successfully!', 'success')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('main.kite_gtt_orders'))
         except Exception as e:
             flash(f'Error updating order: {str(e)}', 'error')
             return redirect(url_for('main.edit_order', trigger_id=trigger_id))
@@ -151,10 +184,10 @@ def edit_order(trigger_id):
         if order:
             return render_template('edit_order.html', order=order)
         flash('Order not found', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.kite_gtt_orders'))
     except Exception as e:
         flash(f'Error fetching order details: {str(e)}', 'error')
-        return redirect(url_for('main.dashboard'))
+        return redirect(url_for('main.kite_gtt_orders'))
 
 @main_bp.route('/fetch')
 def fetch_orders():

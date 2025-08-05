@@ -33,6 +33,11 @@
             <ul class="list-unstyled components">
                 <li class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
                     <a href="{{ url_for('main.dashboard') }}">
+                        <i class="fas fa-home me-2"></i>Dashboard
+                    </a>
+                </li>
+                <li class="{% if request.endpoint == 'main.kite_gtt_orders' %}active{% endif %}">
+                    <a href="{{ url_for('main.kite_gtt_orders') }}">
                         <i class="fas fa-chart-line me-2"></i>Kite GTT Orders
                     </a>
                 </li>

@@ -1,0 +1,646 @@
+{% extends 'base.html' %}
+
+{% block title %}Kite GTT Orders Management{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom-gtt.css') }}">
+<style>
+/* Dashboard-specific table styling to match custom-gtt */
+.table-responsive #ordersTable {
+    table-layout: fixed !important;
+    width: 100% !important;
+    border-collapse: collapse;
+}
+
+.table-responsive #ordersTable th,
+.table-responsive #ordersTable td {
+    vertical-align: middle !important;
+    padding: 0.15rem 0.1rem !important;
+    border: 0.5px solid #dee2e6;
+    border-left: 1.5px solid #adb5bd !important; /* Enhanced vertical lines */
+    border-right: 1.5px solid #adb5bd !important; /* Enhanced vertical lines */
+    font-size: 0.85rem;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* First column - no left border to avoid double border */
+.table-responsive #ordersTable th:first-child,
+.table-responsive #ordersTable td:first-child {
+    border-left: none !important;
+}
+
+/* Last column - no right border to avoid double border */
+.table-responsive #ordersTable th:last-child,
+.table-responsive #ordersTable td:last-child {
+    border-right: none !important;
+}
+
+/* Enhanced row styling for better visibility */
+.table-responsive #ordersTable tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-responsive #ordersTable tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.table-responsive #ordersTable tbody tr:hover {
+    background-color: #e3f2fd !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Header styling for better contrast */
+.table-responsive #ordersTable thead th {
+    background-color: #495057;
+    color: white;
+    font-weight: 600;
+    border-bottom: 2px solid #343a40;
+}
+
+/* Column widths for dashboard table */
+.table-responsive #ordersTable thead th:nth-child(1),
+.table-responsive #ordersTable tbody td:nth-child(1) { 
+    width: 90px !important; 
+    min-width: 90px !important;
+    max-width: 90px !important;
+    font-weight: 600;
+    text-align: left !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(2),
+.table-responsive #ordersTable tbody td:nth-child(2) { 
+    width: 60px !important; 
+    min-width: 60px !important;
+    max-width: 60px !important;
+    text-align: center !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(3),
+.table-responsive #ordersTable tbody td:nth-child(3) { 
+    width: 50px !important; 
+    min-width: 50px !important;
+    max-width: 50px !important;
+    text-align: center !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(4),
+.table-responsive #ordersTable tbody td:nth-child(4) { 
+    width: 120px !important; 
+    min-width: 120px !important;
+    max-width: 120px !important;
+    text-align: center !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(5),
+.table-responsive #ordersTable tbody td:nth-child(5) { 
+    width: 80px !important; 
+    min-width: 80px !important;
+    max-width: 80px !important;
+    text-align: right !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(6),
+.table-responsive #ordersTable tbody td:nth-child(6) { 
+    width: 80px !important; 
+    min-width: 80px !important;
+    max-width: 80px !important;
+    text-align: center !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(7),
+.table-responsive #ordersTable tbody td:nth-child(7) { 
+    width: 60px !important; 
+    min-width: 60px !important;
+    max-width: 60px !important;
+    text-align: right !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(8),
+.table-responsive #ordersTable tbody td:nth-child(8) { 
+    width: 100px !important; 
+    min-width: 100px !important;
+    max-width: 100px !important;
+    text-align: right !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(9),
+.table-responsive #ordersTable tbody td:nth-child(9) { 
+    width: 80px !important; 
+    min-width: 80px !important;
+    max-width: 80px !important;
+    text-align: center !important;
+}
+
+.table-responsive #ordersTable thead th:nth-child(10),
+.table-responsive #ordersTable tbody td:nth-child(10) { 
+    width: 120px !important; 
+    min-width: 120px !important;
+    max-width: 120px !important;
+    text-align: center !important;
+}
+
+/* Sortable headers styling */
+.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: #f8f9fa;
+}
+
+.sort-icon {
+    margin-left: 5px;
+    opacity: 0.6;
+    font-size: 0.7rem;
+}
+
+.sortable.sort-asc .sort-icon:before {
+    content: "\f0de"; /* fa-sort-up */
+    color: #007bff;
+    opacity: 1;
+}
+
+.sortable.sort-desc .sort-icon:before {
+    content: "\f0dd"; /* fa-sort-down */
+    color: #007bff;
+    opacity: 1;
+}
+
+/* Controls bar styling - Simplified container only */
+.controls-container {
+    background-color: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 0.375rem !important;
+    margin-bottom: 1rem !important;
+    padding: 0.75rem !important;
+}
+
+/* Symbol link styling for TradingView */
+.symbol-link {
+    color: #0d6efd;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.symbol-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Main header with actions -->
+    <div class="page-header">
+        <div>
+            <h2>
+                <i class="fas fa-chart-line"></i>Kite GTT Orders Dashboard
+            </h2>
+        </div>
+        <div class="btn-toolbar">
+            <button type="button" class="btn btn-success btn-sm" id="syncKiteGttsBtn" onclick="syncKiteGttsToOracle()" title="Sync GTT Orders to Oracle Database">
+                <i class="fas fa-database me-1"></i>Sync to Oracle
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createOrderModal">
+                <i class="fas fa-plus me-1"></i>New GTT Order
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#multiGttModal">
+                <i class="fas fa-layer-group me-1"></i>Multi GTT Orders
+            </button>
+        </div>
+    </div>
+
+    <!-- Controls bar for search, filters and length - Force horizontal layout -->
+    <div class="controls-container">
+        <div style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 0.5rem !important; flex-wrap: nowrap !important;">
+            <!-- Search -->
+            <div style="flex: 0 0 180px !important;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="dashboardSearch" placeholder="Search orders...">
+                </div>
+            </div>
+            
+            <!-- Transaction Type Filter -->
+            <div style="flex: 0 0 110px !important;">
+                <select class="form-select form-select-sm" id="transactionFilter">
+                    <option value="">All Types</option>
+                    <option value="BUY">BUY</option>
+                    <option value="SELL">SELL</option>
+                </select>
+            </div>
+            
+            <!-- Status Filter -->
+            <div style="flex: 0 0 110px !important;">
+                <select class="form-select form-select-sm" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="triggered">Triggered</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="deleted">Deleted</option>
+                </select>
+            </div>
+            
+            <!-- Exchange Filter -->
+            <div style="flex: 0 0 110px !important;">
+                <select class="form-select form-select-sm" id="exchangeFilter">
+                    <option value="">All Exchanges</option>
+                    <option value="NSE">NSE</option>
+                    <option value="BSE">BSE</option>
+                </select>
+            </div>
+            
+            <!-- Records per page -->
+            <div style="flex: 0 0 70px !important;">
+                <select class="form-select form-select-sm" id="dashboardLength">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="-1" selected>All</option>
+                </select>
+            </div>
+            
+            <!-- Refresh button -->
+            <div style="flex: 0 0 auto !important;">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshTable" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-warning py-2" style="font-size: 0.875rem;">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Unable to connect to KiteConnect. Please make sure:
+        <ol class="mb-0 mt-2">
+            <li>You have run AutoConnect.py to generate access_token.txt</li>
+            <li>Your access token is valid and not expired</li>
+            <li>You have proper internet connectivity</li>
+        </ol>
+    </div>
+    {% endif %}
+
+    <!-- Oracle Sync Result -->
+    <div id="oracleSyncResult" class="oracle-sync-result" style="display: none; margin-bottom: 1rem;"></div>
+
+    <!-- Main table -->
+    <div class="table-wrapper">
+        <!-- Order Summary Section -->
+        <div class="order-summary-bar d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light">
+            <div class="text-muted" style="font-size: 0.875rem;">
+                <span id="orderCountDisplay">Loading orders...</span>
+            </div>
+            <div class="d-flex gap-4" style="font-size: 0.875rem;">
+                <div class="buy-total">
+                    <strong class="text-success">
+                        <i class="fas fa-arrow-up me-1"></i>
+                        BUY: ₹<span id="totalBuyAmount">0.00</span>
+                    </strong>
+                </div>
+                <div class="sell-total">
+                    <strong class="text-danger">
+                        <i class="fas fa-arrow-down me-1"></i>
+                        SELL: ₹<span id="totalSellAmount">0.00</span>
+                    </strong>
+                </div>
+                <div class="net-total">
+                    <strong class="text-info">
+                        <i class="fas fa-calculator me-1"></i>
+                        NET: ₹<span id="netAmount">0.00</span>
+                    </strong>
+                </div>
+            </div>
+        </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-compact" id="ordersTable">
+                <thead>
+                    <tr>
+                        <th class="text-start sortable" data-column="symbol">
+                            Symbol <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="exchange">
+                            Exch <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="type">
+                            Type <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="trigger_values">
+                            Trigger Values <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-end sortable" data-column="last_price">
+                            Last Price <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="transaction_type">
+                            Transaction <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-end sortable" data-column="quantity">
+                            Qty <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-end sortable" data-column="amount">
+                            Amount <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center sortable" data-column="status">
+                            Status <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr data-transaction="{{ order.orders[0].transaction_type }}" 
+                        data-status="{{ order.status }}" 
+                        data-exchange="{{ order.condition.exchange }}">
+                        <td class="text-start">
+                            <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol={{ order.condition.exchange }}:{{ order.condition.tradingsymbol }}', '{{ order.condition.tradingsymbol }}'); return false;" 
+                               class="symbol-link" 
+                               title="View {{ order.condition.tradingsymbol }} chart on TradingView">
+                                {{ order.condition.tradingsymbol }}
+                            </a>
+                        </td>
+                        <td class="text-center">{{ order.condition.exchange }}</td>
+                        <td class="text-center">{{ order.type }}</td>
+                        <td class="text-center">{{ ', '.join(order.condition.trigger_values|map('string')) }}</td>
+                        <td class="text-end">{{ "%.2f"|format(order.condition.last_price) }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-{{ 'success' if order.orders[0].transaction_type == 'BUY' else 'danger' }}">
+                                {{ order.orders[0].transaction_type }}
+                            </span>
+                        </td>
+                        <td class="text-end">{{ order.orders[0].quantity }}</td>
+                        <td class="text-end amount-cell" data-amount="{{ (order.condition.last_price * order.orders[0].quantity)|round(2) }}">
+                            ₹{{ (order.condition.last_price * order.orders[0].quantity)|currency }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-{{ {
+                                'active': 'primary',
+                                'triggered': 'success',
+                                'cancelled': 'warning',
+                                'rejected': 'danger',
+                                'deleted': 'secondary'
+                            }[order.status] }}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <a href="{{ url_for('main.order_detail', trigger_id=order.id) }}" 
+                                   class="btn btn-sm btn-info" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('main.edit_order', trigger_id=order.id) }}" 
+                                   class="btn btn-sm btn-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button onclick="deleteOrder({{ order.id }})" 
+                                        class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Order Modal -->
+<div class="modal fade" id="createOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New GTT Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createOrderForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Trading Symbol</label>
+                                <input type="text" class="form-control" name="tradingsymbol" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Exchange</label>
+                                <select class="form-select" name="exchange" required>
+                                    <option value="NSE">NSE</option>
+                                    <option value="BSE">BSE</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Trigger Type</label>
+                                <select class="form-select" name="trigger_type" required>
+                                    <option value="single">Single</option>
+                                    <option value="two-leg">Two-Leg</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Trigger Values</label>
+                                <input type="text" class="form-control" name="trigger_values" id="triggerValuesInput" required>
+                                <small class="form-text text-muted" style="font-size: 0.85em;">Single: one value. Two-leg: comma separated. Used for price calculation.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Last Price</label>
+                                <input type="number" step="0.01" class="form-control" name="last_price" id="lastPriceInput" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Amount to Invest</label>
+                                <input type="number" step="0.01" class="form-control" name="amount_to_invest" id="amountToInvestInput" placeholder="Amount">
+                                <small class="form-text text-muted" style="font-size: 0.85em;">Enter amount or quantity. Both fields auto-update using trigger value.</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Type</label>
+                                <select class="form-select" name="transaction_type" required>
+                                    <option value="BUY">BUY</option>
+                                    <option value="SELL">SELL</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-control" name="quantity" id="quantityInput" required>
+                                <small class="form-text text-muted" style="font-size: 0.85em;">Amount and quantity are linked.</small>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createOrder()">Create Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Inline delete function to ensure it's always available
+function deleteOrder(orderId) {
+    console.log('[DEBUG] deleteOrder called with orderId:', orderId);
+    if (confirm('Are you sure you want to delete this order?')) {
+        console.log('[DEBUG] User confirmed deletion of order:', orderId);
+        fetch('/api/gtt/order/' + orderId, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function(response) {
+            console.log('[DEBUG] Delete response status:', response.status);
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            console.log('[DEBUG] Delete response data:', data);
+            if (data.error) {
+                console.error('[ERROR] API returned error:', data.error);
+                alert('Error: ' + data.error);
+            } else {
+                console.log('[SUCCESS] Order ' + orderId + ' deleted successfully');
+                alert('Order deleted successfully!');
+                location.reload();
+            }
+        })
+        .catch(function(error) {
+            console.error('[ERROR] Delete Order Error:', error);
+            alert('Error deleting order: ' + error.message);
+        });
+    } else {
+        console.log('[DEBUG] User cancelled deletion of order:', orderId);
+    }
+}
+
+/**
+ * Open TradingView chart in a popup window
+ */
+function openTradingViewPopup(url, symbol) {
+    // Popup window specifications - increased size for better chart viewing
+    const popupWidth = 1700;
+    const popupHeight = 900;
+    
+    // Calculate center position
+    const left = (screen.width - popupWidth) / 2;
+    const top = (screen.height - popupHeight) / 2;
+    
+    // Popup features
+    const features = [
+        `width=${popupWidth}`,
+        `height=${popupHeight}`,
+        `left=${left}`,
+        `top=${top}`,
+        'resizable=yes',
+        'scrollbars=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Open popup
+    const popup = window.open(url, `tradingview_${symbol}`, features);
+    
+    // Focus the popup window if it opened successfully
+    if (popup) {
+        popup.focus();
+    } else {
+        // Fallback if popup was blocked
+        alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
+        window.open(url, '_blank');
+    }
+}
+
+// Test that inline script loaded
+console.log('[DEBUG] Inline deleteOrder function loaded');
+
+// Oracle Sync functionality
+function syncKiteGttsToOracle() {
+    const button = document.getElementById('syncKiteGttsBtn');
+    const resultDiv = document.getElementById('oracleSyncResult');
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Syncing...';
+    resultDiv.style.display = 'none';
+    
+    fetch('/api/sync-kite-gtts-to-oracle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Reset button
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-database me-1"></i>Sync to Oracle';
+        
+        // Show result
+        resultDiv.style.display = 'block';
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Success!</strong> ${data.message}
+                    <br><small>Records processed: ${data.records_processed || 0}</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Auto-refresh table after successful sync
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Error!</strong> ${data.error || 'Failed to sync data to Oracle'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        // Reset button
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-database me-1"></i>Sync to Oracle';
+        
+        // Show error
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Error!</strong> Network error or server unavailable
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        console.error('Oracle sync error:', error);
+    });
+}
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+
+{% include 'multi_gtt_modal.html' %}
