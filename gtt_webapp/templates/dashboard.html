@@ -207,6 +207,9 @@
             </h2>
         </div>
         <div class="btn-toolbar">
+            <button type="button" class="btn btn-success btn-sm" id="syncKiteGttsBtn" onclick="syncKiteGttsToOracle()" title="Sync GTT Orders to Oracle Database">
+                <i class="fas fa-database me-1"></i>Sync to Oracle
+            </button>
             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createOrderModal">
                 <i class="fas fa-plus me-1"></i>New GTT Order
             </button>
@@ -290,6 +293,9 @@
         </ol>
     </div>
     {% endif %}
+
+    <!-- Oracle Sync Result -->
+    <div id="oracleSyncResult" class="oracle-sync-result" style="display: none; margin-bottom: 1rem;"></div>
 
     <!-- Main table -->
     <div class="table-wrapper">
@@ -567,6 +573,72 @@ function openTradingViewPopup(url, symbol) {
 
 // Test that inline script loaded
 console.log('[DEBUG] Inline deleteOrder function loaded');
+
+// Oracle Sync functionality
+function syncKiteGttsToOracle() {
+    const button = document.getElementById('syncKiteGttsBtn');
+    const resultDiv = document.getElementById('oracleSyncResult');
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Syncing...';
+    resultDiv.style.display = 'none';
+    
+    fetch('/api/sync-kite-gtts-to-oracle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Reset button
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-database me-1"></i>Sync to Oracle';
+        
+        // Show result
+        resultDiv.style.display = 'block';
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Success!</strong> ${data.message}
+                    <br><small>Records processed: ${data.records_processed || 0}</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Auto-refresh table after successful sync
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Error!</strong> ${data.error || 'Failed to sync data to Oracle'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        // Reset button
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-database me-1"></i>Sync to Oracle';
+        
+        // Show error
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Error!</strong> Network error or server unavailable
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        console.error('Oracle sync error:', error);
+    });
+}
 </script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
