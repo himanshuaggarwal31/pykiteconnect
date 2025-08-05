@@ -13,6 +13,7 @@ app/request_token.txt
 gtt_webapp/sql_results_cache/
 *.csv
 app/.env
+logs/
 
 ### Linux ###
 *~
