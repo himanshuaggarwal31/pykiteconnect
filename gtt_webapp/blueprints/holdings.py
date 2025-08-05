@@ -105,3 +105,145 @@ def api_auctions():
     except Exception as e:
         logger.error(f"Error fetching auctions: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
+
+@holdings_bp.route('/api/sell/market', methods=['POST'])
+def sell_market_order():
+    """Place a market sell order for a holding"""
+    try:
+        kite = get_kite_instance()
+        if kite is None:
+            return jsonify({'error': 'KiteConnect is not available. Please check access_token.txt.'}), 500
+        
+        data = request.get_json()
+        tradingsymbol = data.get('tradingsymbol')
+        exchange = data.get('exchange', 'NSE')
+        quantity = data.get('quantity')
+        product = data.get('product', 'CNC')
+        
+        if not all([tradingsymbol, quantity]):
+            return jsonify({'error': 'Missing required fields: tradingsymbol, quantity'}), 400
+        
+        # Place market sell order
+        order_id = kite.place_order(
+            variety=kite.VARIETY_REGULAR,
+            exchange=exchange,
+            tradingsymbol=tradingsymbol,
+            transaction_type=kite.TRANSACTION_TYPE_SELL,
+            quantity=int(quantity),
+            product=product,
+            order_type=kite.ORDER_TYPE_MARKET
+        )
+        
+        logger.info(f"Market sell order placed: {order_id} for {quantity} shares of {tradingsymbol}")
+        
+        return jsonify({
+            'message': 'Market sell order placed successfully',
+            'order_id': order_id,
+            'order_details': {
+                'tradingsymbol': tradingsymbol,
+                'exchange': exchange,
+                'quantity': quantity,
+                'order_type': 'MARKET',
+                'transaction_type': 'SELL',
+                'product': product
+            }
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"Error placing market sell order: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@holdings_bp.route('/api/sell/gtt', methods=['POST'])
+def sell_gtt_order():
+    """Place a GTT sell order (single-leg or two-leg) for a holding"""
+    try:
+        kite = get_kite_instance()
+        if kite is None:
+            return jsonify({'error': 'KiteConnect is not available. Please check access_token.txt.'}), 500
+        
+        data = request.get_json()
+        tradingsymbol = data.get('tradingsymbol')
+        exchange = data.get('exchange', 'NSE')
+        quantity = data.get('quantity')
+        product = data.get('product', 'CNC')
+        trigger_type = data.get('trigger_type')  # 'single' or 'two-leg'
+        trigger_prices = data.get('trigger_prices', [])
+        last_price = data.get('last_price')
+        
+        if not all([tradingsymbol, quantity, trigger_type, trigger_prices, last_price]):
+            return jsonify({'error': 'Missing required fields: tradingsymbol, quantity, trigger_type, trigger_prices, last_price'}), 400
+        
+        if trigger_type not in ['single', 'two-leg']:
+            return jsonify({'error': 'Invalid trigger_type. Must be "single" or "two-leg"'}), 400
+        
+        # Validate trigger prices based on type
+        if trigger_type == 'single' and len(trigger_prices) != 1:
+            return jsonify({'error': 'Single-leg GTT requires exactly 1 trigger price'}), 400
+        elif trigger_type == 'two-leg' and len(trigger_prices) != 2:
+            return jsonify({'error': 'Two-leg GTT requires exactly 2 trigger prices'}), 400
+        
+        # Create orders based on trigger type
+        if trigger_type == 'single':
+            orders = [{
+                "exchange": exchange,
+                "tradingsymbol": tradingsymbol,
+                "transaction_type": kite.TRANSACTION_TYPE_SELL,
+                "quantity": int(quantity),
+                "order_type": kite.ORDER_TYPE_LIMIT,
+                "product": product,
+                "price": float(trigger_prices[0])
+            }]
+            kite_trigger_type = kite.GTT_TYPE_SINGLE
+        else:  # two-leg
+            orders = [
+                {
+                    "exchange": exchange,
+                    "tradingsymbol": tradingsymbol,
+                    "transaction_type": kite.TRANSACTION_TYPE_SELL,
+                    "quantity": int(quantity),
+                    "order_type": kite.ORDER_TYPE_LIMIT,
+                    "product": product,
+                    "price": float(trigger_prices[0])
+                },
+                {
+                    "exchange": exchange,
+                    "tradingsymbol": tradingsymbol,
+                    "transaction_type": kite.TRANSACTION_TYPE_SELL,
+                    "quantity": int(quantity),
+                    "order_type": kite.ORDER_TYPE_LIMIT,
+                    "product": product,
+                    "price": float(trigger_prices[1])
+                }
+            ]
+            kite_trigger_type = kite.GTT_TYPE_OCO
+        
+        # Place GTT order
+        result = kite.place_gtt(
+            trigger_type=kite_trigger_type,
+            tradingsymbol=tradingsymbol,
+            exchange=exchange,
+            trigger_values=trigger_prices,
+            last_price=float(last_price),
+            orders=orders
+        )
+        
+        logger.info(f"GTT sell order placed: trigger_id={result.get('trigger_id')} for {quantity} shares of {tradingsymbol}")
+        
+        return jsonify({
+            'message': 'GTT sell order placed successfully',
+            'trigger_id': result.get('trigger_id'),
+            'order_details': {
+                'tradingsymbol': tradingsymbol,
+                'exchange': exchange,
+                'quantity': quantity,
+                'trigger_type': trigger_type,
+                'trigger_prices': trigger_prices,
+                'last_price': last_price,
+                'transaction_type': 'SELL',
+                'product': product
+            }
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"Error placing GTT sell order: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500

@@ -354,6 +354,9 @@
                             Day Change %
                             <i class="fas fa-sort sort-icon"></i>
                         </th>
+                        <th class="text-center">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
                 <tbody id="holdingsTableBody">
@@ -408,6 +411,15 @@
                                 {% set change_class = "profit" if day_change > 0 else ("loss" if day_change < 0 else "neutral") %}
                                 <span class="{{ change_class }}">{{ "%.2f"|format(day_change_pct) }}%</span>
                             </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger btn-sm" 
+                                            onclick="showSellModal('{{ holding.tradingsymbol }}', '{{ holding.exchange }}', {{ holding.quantity }}, {{ holding.last_price }}, '{{ holding.product }}')"
+                                            title="Sell {{ holding.tradingsymbol }}">
+                                        <i class="fas fa-arrow-down"></i> Sell
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     {% else %}
@@ -445,6 +457,15 @@
                             <td class="text-center">
                                 <span class="profit">1.96%</span>
                             </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger btn-sm" 
+                                            onclick="showSellModal('RELIANCE', 'NSE', 10, 2600.00, 'CNC')"
+                                            title="Sell RELIANCE">
+                                        <i class="fas fa-arrow-down"></i> Sell
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                         <tr class="holding-row" data-exchange="NSE" data-symbol="TCS">
                             <td class="text-start">
@@ -479,6 +500,15 @@
                             <td class="text-center">
                                 <span class="loss">-0.66%</span>
                             </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger btn-sm" 
+                                            onclick="showSellModal('TCS', 'NSE', 5, 3750.00, 'CNC')"
+                                            title="Sell TCS">
+                                        <i class="fas fa-arrow-down"></i> Sell
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     {% endif %}
                 </tbody>
@@ -498,6 +528,90 @@
     <button type="button" class="btn btn-primary refresh-btn" onclick="refreshHoldings()" title="Refresh Holdings">
         <i class="fas fa-sync-alt"></i>
     </button>
+
+    <!-- Sell Modal -->
+    <div class="modal fade" id="sellModal" tabindex="-1" aria-labelledby="sellModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sellModalLabel">Sell <span id="sellSymbol"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Symbol:</strong> <span id="sellModalSymbol"></span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Exchange:</strong> <span id="sellModalExchange"></span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Available Qty:</strong> <span id="sellModalAvailableQty"></span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Last Price:</strong> ₹<span id="sellModalLastPrice"></span>
+                        </div>
+                    </div>
+
+                    <form id="sellForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sellQuantity" class="form-label">Quantity to Sell</label>
+                                <input type="number" class="form-control" id="sellQuantity" required min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="sellType" class="form-label">Order Type</label>
+                                <select class="form-select" id="sellType" required onchange="toggleSellTypeFields()">
+                                    <option value="">Select Order Type</option>
+                                    <option value="market">Market Order (Immediate)</option>
+                                    <option value="gtt-single">GTT Single-Leg (Stop Loss)</option>
+                                    <option value="gtt-two-leg">GTT Two-Leg (OCO)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- GTT Single-Leg Fields -->
+                        <div id="gttSingleFields" class="row mb-3" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="triggerPrice" class="form-label">Trigger Price</label>
+                                <input type="number" class="form-control" id="triggerPrice" step="0.01" placeholder="Price to trigger sell">
+                                <small class="form-text text-muted">Order will execute when price reaches this level</small>
+                            </div>
+                        </div>
+
+                        <!-- GTT Two-Leg Fields -->
+                        <div id="gttTwoLegFields" class="row mb-3" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="triggerPrice1" class="form-label">Trigger Price 1 (Stop Loss)</label>
+                                <input type="number" class="form-control" id="triggerPrice1" step="0.01" placeholder="Lower trigger price">
+                                <small class="form-text text-muted">Usually set below current price for stop loss</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="triggerPrice2" class="form-label">Trigger Price 2 (Target)</label>
+                                <input type="number" class="form-control" id="triggerPrice2" step="0.01" placeholder="Higher trigger price">
+                                <small class="form-text text-muted">Usually set above current price for profit booking</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>Order Types:</strong>
+                            <ul class="mb-0">
+                                <li><strong>Market Order:</strong> Sell immediately at current market price</li>
+                                <li><strong>GTT Single-Leg:</strong> Set one trigger price for stop loss or target</li>
+                                <li><strong>GTT Two-Leg:</strong> Set both stop loss and target prices (One Cancels Other)</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="executeSellOrder()" id="sellExecuteBtn">
+                        <i class="fas fa-arrow-down"></i> Execute Sell Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -845,6 +959,15 @@ function createHoldingRow(holding) {
                 ₹${dayChange.toFixed(2)} (${dayChangePct.toFixed(2)}%)
             </span>
         </td>
+        <td class="text-center">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-danger btn-sm" 
+                        onclick="showSellModal('${holding.tradingsymbol}', '${holding.exchange}', ${holding.quantity}, ${holding.last_price}, '${holding.product}')"
+                        title="Sell ${holding.tradingsymbol}">
+                    <i class="fas fa-arrow-down"></i> Sell
+                </button>
+            </div>
+        </td>
     `;
     
     return row;
@@ -1139,6 +1262,177 @@ function openTradingViewPopup(url, symbol) {
         alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
         window.open(url, '_blank');
     }
+}
+
+// Sell functionality
+let currentSellData = {};
+
+function showSellModal(tradingsymbol, exchange, quantity, lastPrice, product) {
+    currentSellData = {
+        tradingsymbol: tradingsymbol,
+        exchange: exchange,
+        quantity: quantity,
+        lastPrice: lastPrice,
+        product: product
+    };
+    
+    // Populate modal with holding data
+    document.getElementById('sellSymbol').textContent = tradingsymbol;
+    document.getElementById('sellModalSymbol').textContent = tradingsymbol;
+    document.getElementById('sellModalExchange').textContent = exchange;
+    document.getElementById('sellModalAvailableQty').textContent = quantity;
+    document.getElementById('sellModalLastPrice').textContent = lastPrice.toFixed(2);
+    
+    // Reset form
+    document.getElementById('sellForm').reset();
+    document.getElementById('sellQuantity').setAttribute('max', quantity);
+    toggleSellTypeFields();
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('sellModal'));
+    modal.show();
+}
+
+function toggleSellTypeFields() {
+    const sellType = document.getElementById('sellType').value;
+    const gttSingleFields = document.getElementById('gttSingleFields');
+    const gttTwoLegFields = document.getElementById('gttTwoLegFields');
+    
+    // Hide all GTT fields first
+    gttSingleFields.style.display = 'none';
+    gttTwoLegFields.style.display = 'none';
+    
+    // Show relevant fields based on selection
+    if (sellType === 'gtt-single') {
+        gttSingleFields.style.display = 'block';
+    } else if (sellType === 'gtt-two-leg') {
+        gttTwoLegFields.style.display = 'block';
+    }
+}
+
+function executeSellOrder() {
+    const sellType = document.getElementById('sellType').value;
+    const quantity = parseInt(document.getElementById('sellQuantity').value);
+    
+    // Validate form
+    if (!sellType || !quantity || quantity <= 0 || quantity > currentSellData.quantity) {
+        alert('Please provide valid quantity and order type');
+        return;
+    }
+    
+    const sellButton = document.getElementById('sellExecuteBtn');
+    const originalText = sellButton.innerHTML;
+    sellButton.disabled = true;
+    sellButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    if (sellType === 'market') {
+        executeMarketSellOrder(quantity);
+    } else if (sellType === 'gtt-single') {
+        const triggerPrice = parseFloat(document.getElementById('triggerPrice').value);
+        if (!triggerPrice) {
+            alert('Please provide trigger price for GTT order');
+            sellButton.disabled = false;
+            sellButton.innerHTML = originalText;
+            return;
+        }
+        executeGttSellOrder(quantity, 'single', [triggerPrice]);
+    } else if (sellType === 'gtt-two-leg') {
+        const triggerPrice1 = parseFloat(document.getElementById('triggerPrice1').value);
+        const triggerPrice2 = parseFloat(document.getElementById('triggerPrice2').value);
+        if (!triggerPrice1 || !triggerPrice2) {
+            alert('Please provide both trigger prices for two-leg GTT order');
+            sellButton.disabled = false;
+            sellButton.innerHTML = originalText;
+            return;
+        }
+        executeGttSellOrder(quantity, 'two-leg', [triggerPrice1, triggerPrice2]);
+    }
+}
+
+function executeMarketSellOrder(quantity) {
+    const data = {
+        tradingsymbol: currentSellData.tradingsymbol,
+        exchange: currentSellData.exchange,
+        quantity: quantity,
+        product: currentSellData.product
+    };
+    
+    fetch('/holdings/api/sell/market', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Show success message
+        alert(`Market sell order placed successfully!\nOrder ID: ${data.order_id}\nQuantity: ${quantity} shares of ${currentSellData.tradingsymbol}`);
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('sellModal')).hide();
+        
+        // Refresh holdings
+        refreshHoldings();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`Error placing market sell order: ${error.message}`);
+    })
+    .finally(() => {
+        const sellButton = document.getElementById('sellExecuteBtn');
+        sellButton.disabled = false;
+        sellButton.innerHTML = '<i class="fas fa-arrow-down"></i> Execute Sell Order';
+    });
+}
+
+function executeGttSellOrder(quantity, triggerType, triggerPrices) {
+    const data = {
+        tradingsymbol: currentSellData.tradingsymbol,
+        exchange: currentSellData.exchange,
+        quantity: quantity,
+        product: currentSellData.product,
+        trigger_type: triggerType,
+        trigger_prices: triggerPrices,
+        last_price: currentSellData.lastPrice
+    };
+    
+    fetch('/holdings/api/sell/gtt', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Show success message
+        let message = `GTT sell order placed successfully!\nTrigger ID: ${data.trigger_id}\nQuantity: ${quantity} shares of ${currentSellData.tradingsymbol}\nTrigger Type: ${triggerType}\nTrigger Prices: ₹${triggerPrices.join(', ₹')}`;
+        alert(message);
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('sellModal')).hide();
+        
+        // Refresh holdings
+        refreshHoldings();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`Error placing GTT sell order: ${error.message}`);
+    })
+    .finally(() => {
+        const sellButton = document.getElementById('sellExecuteBtn');
+        sellButton.disabled = false;
+        sellButton.innerHTML = '<i class="fas fa-arrow-down"></i> Execute Sell Order';
+    });
 }
 </script>
 {% endblock %}
