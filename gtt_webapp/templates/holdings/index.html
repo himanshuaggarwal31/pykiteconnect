@@ -706,7 +706,7 @@
 // Global variables
 let allHoldings = [];
 let filteredHoldings = [];
-let currentRowLimit = 25;
+let currentRowLimit = -1;
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
 
@@ -749,6 +749,8 @@ function setupEventListeners() {
     // Row limit selector
     const lengthSelect = document.getElementById('holdingsLength');
     if (lengthSelect) {
+        // Initialize currentRowLimit with the selected dropdown value
+        currentRowLimit = parseInt(lengthSelect.value);
         lengthSelect.addEventListener('change', handleRowLimitChange);
     }
 }

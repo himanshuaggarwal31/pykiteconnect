@@ -3,7 +3,7 @@ import logging
 from models.custom_gtt import (
     get_custom_gtt_orders, add_custom_gtt_order, update_custom_gtt_order,
     delete_custom_gtt_order, get_order_by_id, place_order_on_kite, 
-    place_multiple_orders_on_kite, update_kite_status, reset_kite_status
+    place_multiple_orders_on_kite, delete_multiple_orders, update_kite_status, reset_kite_status
 )
 
 custom_gtt_api = Blueprint('custom_gtt_api', __name__)
@@ -273,6 +273,35 @@ def place_multiple_orders():
         })
     except Exception as e:
         logger.error(f"[API] Error placing multiple orders: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@custom_gtt_api.route('/delete-orders', methods=['POST'])
+def delete_multiple_orders_api():
+    """Delete multiple GTT orders"""
+    try:
+        # Get order IDs from request
+        data = request.json
+        order_ids = data.get('order_ids', [])
+        if not order_ids:
+            return jsonify({
+                'success': False,
+                'error': 'No order IDs provided'
+            }), 400
+        
+        # Delete orders
+        results = delete_multiple_orders(order_ids)
+        logger.info(f"[API] {len(results['success'])} orders deleted successfully, {len(results['failed'])} failed")
+        
+        return jsonify({
+            'success': True,
+            'message': f"{len(results['success'])} orders deleted successfully",
+            'results': results
+        })
+    except Exception as e:
+        logger.error(f"[API] Error deleting multiple orders: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)

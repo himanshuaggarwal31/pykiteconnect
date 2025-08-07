@@ -283,6 +283,26 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Initialized place all orders button');
         }
         
+        const deleteSelectedOrdersBtn = document.getElementById('deleteSelectedOrdersBtn');
+        if (deleteSelectedOrdersBtn) {
+            deleteSelectedOrdersBtn.addEventListener('click', () => {
+                const selectedOrders = getSelectedOrders();
+                if (selectedOrders.length === 0) {
+                    showToast('Please select at least one order to delete', 'warning');
+                    return;
+                }
+                
+                showConfirmationModal(
+                    'Delete Selected Orders',
+                    `Are you sure you want to delete ${selectedOrders.length} selected order(s)? This action cannot be undone.`,
+                    () => {
+                        deleteMultipleOrders(selectedOrders);
+                    }
+                );
+            });
+            console.log('✅ Initialized delete selected orders button');
+        }
+        
         // Initialize sorting functionality
         initializeSorting();
         
@@ -1342,6 +1362,69 @@ function placeMultipleOrders(orderIds) {
             
             console.error('Error placing multiple orders:', error);
             showToast('Failed to place orders on Kite', 'error');
+        });
+}
+
+/**
+ * Delete multiple orders
+ */
+function deleteMultipleOrders(orderIds) {
+    // Show loading
+    const button = document.getElementById('deleteSelectedOrdersBtn');
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Deleting...';
+    button.disabled = true;
+    
+    fetch('/api/custom-gtt/delete-orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ order_ids: orderIds })
+    })
+        .then(response => response.json())
+        .then(data => {
+            // Reset button
+            button.innerHTML = '<i class="fas fa-trash me-1"></i>Delete Selected Orders';
+            button.disabled = false;
+            
+            if (data.error) {
+                showToast(data.error, 'error');
+                return;
+            }
+            
+            const successCount = data.results?.success?.length || 0;
+            const failedCount = data.results?.failed?.length || 0;
+            
+            showToast(`Successfully deleted ${successCount} orders${failedCount > 0 ? `, ${failedCount} failed` : ''}`, 
+                failedCount > 0 ? 'warning' : 'success');
+            
+            // Refresh table data
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                const event = new Event('input', { bubbles: true });
+                searchInput.dispatchEvent(event);
+            }
+            
+            // Clear all checkboxes
+            const selectAllCheckbox = document.getElementById('selectAll');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+            const orderCheckboxes = document.querySelectorAll('.order-select');
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Update selection counter
+            updateSelectedCount();
+        })
+        .catch(error => {
+            // Reset button
+            button.innerHTML = '<i class="fas fa-trash me-1"></i>Delete Selected Orders';
+            button.disabled = false;
+            
+            console.error('Error deleting multiple orders:', error);
+            showToast('Failed to delete orders', 'error');
         });
 }
 

@@ -354,7 +354,7 @@ def get_custom_gtt_orders(search='', order_type='', kite_status='', page=1, per_
         offset = (page - 1) * per_page
         
         # Build ORDER BY clause for sorting
-        order_by_clause = "updated_at DESC"  # Default sorting
+        order_by_clause = "quantity ASC, ID DESC"  # Default sorting
         
         if sort_by:
             # Map frontend column names to database column names
@@ -679,3 +679,56 @@ def place_multiple_orders_on_kite(order_ids, kite):
     
     logger.info(f"[INFO][place_multiple_orders_on_kite] Placed {len(results['success'])} orders, {len(results['failed'])} failed")
     return results
+
+def delete_multiple_orders(order_ids):
+    """Delete multiple custom GTT orders"""
+    logger = get_custom_logger()
+    connection = None
+    results = {
+        'success': [],
+        'failed': []
+    }
+    
+    try:
+        logger.debug(f"[DEBUG][delete_multiple_orders] Deleting orders: {order_ids}")
+        connection = oracledb.connect(**configuration['db_config'])
+        cursor = connection.cursor()
+        
+        for order_id in order_ids:
+            try:
+                cursor.execute("""
+                    DELETE FROM custom_gtt_orders
+                    WHERE id = :id
+                """, {'id': order_id})
+                
+                if cursor.rowcount > 0:
+                    results['success'].append({
+                        'order_id': order_id
+                    })
+                    logger.debug(f"[DEBUG][delete_multiple_orders] Order {order_id} deleted successfully")
+                else:
+                    results['failed'].append({
+                        'order_id': order_id,
+                        'error': 'Order not found or already deleted'
+                    })
+                    logger.warning(f"[WARNING][delete_multiple_orders] Order {order_id} not found")
+                    
+            except Exception as e:
+                logger.error(f"[ERROR][delete_multiple_orders] Failed to delete order {order_id}: {str(e)}", exc_info=True)
+                results['failed'].append({
+                    'order_id': order_id,
+                    'error': str(e)
+                })
+        
+        connection.commit()
+        logger.info(f"[INFO][delete_multiple_orders] Deleted {len(results['success'])} orders, {len(results['failed'])} failed")
+        return results
+        
+    except Exception as e:
+        logger.error(f"[ERROR][delete_multiple_orders] Database error: {str(e)}", exc_info=True)
+        if connection:
+            connection.rollback()
+        raise
+    finally:
+        if connection:
+            connection.close()
