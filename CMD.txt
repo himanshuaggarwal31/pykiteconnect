@@ -43,10 +43,15 @@ git clean -fd ; git restore .
 ----------
 
 git add .  
-git commit -m "minor enhancements custom gtt deleted selected orders"     
+git commit -m "minor enhancements added custom filter on custom gtt "     
 git push   
 
 
 
 git pull origin
 git checkout feature/holding_sell_action
+
+
+.\venv\Scripts\Activate.ps1
+python .\app\AutoConnect.py
+python .\gtt_webapp\run.py

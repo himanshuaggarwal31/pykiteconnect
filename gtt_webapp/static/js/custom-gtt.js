@@ -3,6 +3,19 @@
  * Handles saving, editing, and placing GTT orders
  */
 
+// Debounce function for search input
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // Global error handler to catch any unexpected JavaScript errors
 window.addEventListener('error', function(event) {
     console.error('Global JavaScript error caught:', {
@@ -214,6 +227,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 console.log(`✅ Added change listener to ${id}`);
             }
+        });
+        
+        // Initialize advanced search handler
+        const advancedSearchInput = document.getElementById('advancedSearchInput');
+        if (advancedSearchInput) {
+            advancedSearchInput.addEventListener('input', debounce(() => {
+                loadTableData();
+            }, 500));
+            console.log('✅ Initialized advanced search input');
+        }
+        
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
         
         // Initialize pagination buttons
@@ -1577,6 +1605,7 @@ function loadTableData() {
     const kiteStatusFilter = document.getElementById('kiteStatusFilter');
     const recordsPerPage = document.getElementById('recordsPerPage');
     const searchInput = document.getElementById('searchInput');
+    const advancedSearchInput = document.getElementById('advancedSearchInput');
     
     const params = new URLSearchParams({
         page: 1
@@ -1598,6 +1627,10 @@ function loadTableData() {
 
     if (searchInput && searchInput.value) {
         params.append('search', searchInput.value);
+    }
+    
+    if (advancedSearchInput && advancedSearchInput.value) {
+        params.append('advanced_search', advancedSearchInput.value);
     }
     
     if (orderTypeFilter && orderTypeFilter.value) {

@@ -1,5 +1,6 @@
 import oracledb
 import logging
+import re
 from datetime import datetime
 from db_config import get_connection, configuration
 from flask import current_app
@@ -312,12 +313,101 @@ def delete_custom_gtt_order(order_id):
         if connection:
             connection.close()
 
-def get_custom_gtt_orders(search='', order_type='', kite_status='', page=1, per_page=25, sort_by='', sort_order='asc'):
+def parse_advanced_search(advanced_search):
+    """Parse advanced search query like 'QTY > 10 AND AMOUNT > 30000'"""
+    logger = get_custom_logger()
+    
+    if not advanced_search or not advanced_search.strip():
+        return []
+    
+    try:
+        # Column mapping for user-friendly names to database columns
+        column_mapping = {
+            'QTY': 'quantity',
+            'QUANTITY': 'quantity',
+            'AMOUNT': '(quantity * trigger_price)',  # Calculated field
+            'TRIGGER_PRICE': 'trigger_price',
+            'TRIGGER': 'trigger_price',
+            'LAST_PRICE': 'last_price',
+            'LAST': 'last_price',
+            'PRICE': 'last_price',
+            'SYMBOL': 'symbol',
+            'RANK': 'nifty_rank',
+            'NIFTY_RANK': 'nifty_rank'
+        }
+        
+        # Split by AND/OR while preserving the operators
+        import re
+        
+        # First, let's split the query by AND/OR
+        parts = re.split(r'\s+(AND|OR)\s+', advanced_search.upper())
+        
+        conditions = []
+        logical_operators = []
+        
+        i = 0
+        while i < len(parts):
+            if parts[i] in ['AND', 'OR']:
+                logical_operators.append(parts[i])
+                i += 1
+            else:
+                # Parse individual condition
+                condition = parts[i].strip()
+                
+                # Match pattern: COLUMN OPERATOR VALUE
+                match = re.match(r'(\w+)\s*(>=|<=|!=|>|<|=)\s*(.+)', condition)
+                if match:
+                    column, operator, value = match.groups()
+                    
+                    # Map column name
+                    db_column = column_mapping.get(column.upper())
+                    if db_column:
+                        # Validate and convert value
+                        try:
+                            # Try to convert to number
+                            if '.' in value:
+                                numeric_value = float(value)
+                            else:
+                                numeric_value = int(value)
+                            
+                            conditions.append({
+                                'column': db_column,
+                                'operator': operator,
+                                'value': numeric_value,
+                                'raw_value': value
+                            })
+                        except ValueError:
+                            # Handle string values (for SYMBOL searches)
+                            if column.upper() in ['SYMBOL']:
+                                conditions.append({
+                                    'column': db_column,
+                                    'operator': operator,
+                                    'value': value.strip("'\""),
+                                    'raw_value': value,
+                                    'is_string': True
+                                })
+                            else:
+                                logger.warning(f"[WARNING][parse_advanced_search] Invalid numeric value: {value} for column {column}")
+                    else:
+                        logger.warning(f"[WARNING][parse_advanced_search] Unknown column: {column}")
+                else:
+                    logger.warning(f"[WARNING][parse_advanced_search] Invalid condition format: {condition}")
+                
+                i += 1
+        
+        logger.debug(f"[DEBUG][parse_advanced_search] Parsed conditions: {conditions}, operators: {logical_operators}")
+        return conditions, logical_operators
+        
+    except Exception as e:
+        logger.error(f"[ERROR][parse_advanced_search] Failed to parse advanced search '{advanced_search}': {str(e)}")
+        return [], []
+
+def get_custom_gtt_orders(search='', advanced_search='', order_type='', kite_status='', page=1, per_page=25, sort_by='', sort_order='asc'):
     """Get all custom GTT orders with filtering, pagination, and sorting"""
     logger = get_custom_logger()
     connection = None
     try:
-        logger.debug(f"[DEBUG][get_custom_gtt_orders] Fetching orders with search: '{search}', order_type: '{order_type}', kite_status: '{kite_status}', page: {page}, per_page: {per_page}, sort_by: '{sort_by}', sort_order: '{sort_order}'")
+        logger.debug(f"[DEBUG][get_custom_gtt_orders] Fetching orders with search: '{search}', advanced_search: '{advanced_search}', order_type: '{order_type}', kite_status: '{kite_status}', page: {page}, per_page: {per_page}, sort_by: '{sort_by}', sort_order: '{sort_order}'")
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
@@ -328,6 +418,44 @@ def get_custom_gtt_orders(search='', order_type='', kite_status='', page=1, per_
         if search:
             where_clauses.append("(UPPER(symbol) LIKE UPPER(:search) OR UPPER(company_name) LIKE UPPER(:search))")
             params['search'] = f"%{sanitize_input(search)}%"
+            
+        # Handle advanced search
+        if advanced_search:
+            conditions, logical_operators = parse_advanced_search(advanced_search)
+            if conditions:
+                advanced_where_parts = []
+                for i, condition in enumerate(conditions):
+                    param_name = f"adv_param_{i}"
+                    
+                    if condition.get('is_string'):
+                        # String comparison
+                        if condition['operator'] == '=':
+                            advanced_where_parts.append(f"UPPER({condition['column']}) = UPPER(:{param_name})")
+                        elif condition['operator'] == '!=':
+                            advanced_where_parts.append(f"UPPER({condition['column']}) != UPPER(:{param_name})")
+                        else:
+                            advanced_where_parts.append(f"UPPER({condition['column']}) LIKE UPPER(:{param_name})")
+                            condition['value'] = f"%{condition['value']}%"
+                    else:
+                        # Numeric comparison
+                        advanced_where_parts.append(f"{condition['column']} {condition['operator']} :{param_name}")
+                    
+                    params[param_name] = condition['value']
+                
+                # Combine conditions with logical operators
+                if advanced_where_parts:
+                    if logical_operators:
+                        # Combine parts with their respective operators
+                        combined_advanced = advanced_where_parts[0]
+                        for i, operator in enumerate(logical_operators):
+                            if i + 1 < len(advanced_where_parts):
+                                combined_advanced += f" {operator} {advanced_where_parts[i + 1]}"
+                        where_clauses.append(f"({combined_advanced})")
+                    else:
+                        # Single condition
+                        where_clauses.append(f"({advanced_where_parts[0]})")
+                
+                logger.debug(f"[DEBUG][get_custom_gtt_orders] Advanced search WHERE clause parts: {advanced_where_parts}")
             
         if order_type:
             where_clauses.append("order_type = :order_type")

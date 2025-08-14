@@ -76,6 +76,20 @@
                 <input type="text" class="form-control" id="searchInput" placeholder="Search symbol...">
             </div>
             
+            <!-- Advanced Search -->
+            <div class="input-group input-group-sm search-input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-filter"></i>
+                </span>
+                <input type="text" class="form-control" id="advancedSearchInput" 
+                       placeholder="e.g. QTY > 10 AND AMOUNT > 30000">
+                <button class="btn btn-outline-secondary" type="button" id="advancedSearchHelp" 
+                        data-bs-toggle="tooltip" data-bs-placement="top" 
+                        title="Supported: SYMBOL, QTY, AMOUNT, TRIGGER_PRICE, LAST_PRICE, RANK. Operators: >, <, >=, <=, =, !=. Logic: AND, OR">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+            </div>
+            
             <!-- Order Type filter -->
             <select class="form-select form-select-sm compact-select" id="orderTypeFilter">
                 <option value="">All Order Types</option>
