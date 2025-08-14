@@ -43,7 +43,7 @@ git clean -fd ; git restore .
 ----------
 
 git add .  
-git commit -m "minor enhancements added custom filter on custom gtt "     
+git commit -m "minor enhancements on custom gtt "     
 git push   
 
 

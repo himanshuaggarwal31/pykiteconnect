@@ -158,6 +158,7 @@ def create_app():
     from blueprints.api.custom_gtt import custom_gtt_api
     from blueprints.api.debug import debug_api
     from blueprints.api.sql_results_gtt import sql_results_gtt_api
+    from blueprints.api.saved_filters import saved_filters_api
     from blueprints.debug import debug_bp
 
     # First, register API blueprints with api_bp BEFORE registering api_bp with app
@@ -168,6 +169,9 @@ def create_app():
         
         api_bp.register_blueprint(sql_results_gtt_api, url_prefix='/sql-results-gtt')
         logger.info(f"Registered sql_results_gtt_api blueprint within api_bp with prefix '/sql-results-gtt'")
+        
+        api_bp.register_blueprint(saved_filters_api, url_prefix='/saved-filters')
+        logger.info(f"Registered saved_filters_api blueprint within api_bp with prefix '/saved-filters'")
         
         api_bp.register_blueprint(debug_api)
         logger.info(f"Registered debug_api blueprint within api_bp")

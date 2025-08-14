@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "name": "High Quantity Orders",
+    "query": "QTY > 100",
+    "description": "Orders with quantity greater than 100 shares",
+    "created_at": "2025-01-14 12:00:00",
+    "last_used": "2025-08-14 15:47:50",
+    "usage_count": 3
+  },
+  {
+    "id": 2,
+    "name": "High Value Trades",
+    "query": "AMOUNT > 50000",
+    "description": "Trades worth more than \u00e2\u201a\u00b950,000",
+    "created_at": "2025-01-14 12:01:00",
+    "last_used": "2025-08-14 15:27:52",
+    "usage_count": 1
+  },
+  {
+    "id": 3,
+    "name": "Profitable Positions",
+    "query": "PCT_CHG > 5",
+    "description": "Positions with more than 5% profit",
+    "created_at": "2025-01-14 12:02:00",
+    "last_used": null,
+    "usage_count": 0
+  },
+  {
+    "id": 4,
+    "name": "Large Profitable Trades",
+    "query": "QTY > 50 AND PCT_CHG > 3",
+    "description": "Large quantity trades with good profit margin",
+    "created_at": "2025-01-14 12:03:00",
+    "last_used": "2025-08-14 15:28:06",
+    "usage_count": 1
+  },
+  {
+    "id": 5,
+    "name": "High Risk Positions",
+    "query": "AMOUNT > 100000 AND PCT_CHG < -2",
+    "description": "High value positions currently in loss",
+    "created_at": "2025-01-14 12:04:00",
+    "last_used": "2025-08-14 22:18:49",
+    "usage_count": 18
+  },
+  {
+    "id": 5,
+    "name": "QTY = 0 AND PCT_CHG < 10",
+    "query": "QTY = 0 AND PCT_CHG < 10",
+    "description": "Orders with quantity equal to 0 and less than 10% change",
+    "created_at": "2025-01-14 12:04:00",
+    "last_used": null,
+    "usage_count": 0
+  }
+]

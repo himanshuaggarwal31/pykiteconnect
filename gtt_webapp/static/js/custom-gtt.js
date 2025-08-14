@@ -125,6 +125,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        // Add special event listener for quantity field to track manual changes
+        const quantityElement = document.getElementById('quantity');
+        if (quantityElement) {
+            quantityElement.addEventListener('input', function() {
+                // Mark as manually set when user changes it
+                if (this.value !== '') {
+                    this.dataset.manuallySet = 'true';
+                    console.log('Quantity manually set to:', this.value);
+                }
+            });
+        }
+        
         // Add event listener for trigger type change to toggle fields
         const triggerTypeElement = document.getElementById('triggerType');
         if (triggerTypeElement) {
@@ -170,6 +182,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Store fetchTableData globally for debugging
             window.debugFetchTableData = fetchTableData;
+            
+            // Try to restore saved table state from previous session
+            setTimeout(() => {
+                const savedState = restoreTableState();
+                if (savedState) {
+                    console.log('🔄 Restored table state:', savedState);
+                    // Load table data with restored state
+                    loadTableData();
+                } else {
+                    console.log('ℹ️ No saved state found, using default state');
+                }
+            }, 100);
             
         } catch (error) {
             console.error('❌ Search initialization failed:', error);
@@ -236,6 +260,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadTableData();
             }, 500));
             console.log('✅ Initialized advanced search input');
+        }
+        
+        // Initialize reset filters button
+        const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+        if (resetFiltersBtn) {
+            resetFiltersBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all filters and sorting?')) {
+                    resetTableToDefault();
+                }
+            });
+            console.log('✅ Initialized reset filters button');
         }
         
         // Initialize tooltips
@@ -344,6 +379,111 @@ document.addEventListener('DOMContentLoaded', function() {
 // Global variables for sorting
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
+
+/**
+ * Save current table state (filters, search, sorting, pagination)
+ */
+function saveTableState() {
+    const state = {
+        search: document.getElementById('searchInput')?.value || '',
+        advancedSearch: document.getElementById('advancedSearchInput')?.value || '',
+        orderType: document.getElementById('orderTypeFilter')?.value || '',
+        kiteStatus: document.getElementById('kiteStatusFilter')?.value || '',
+        recordsPerPage: document.getElementById('recordsPerPage')?.value || '-1',
+        sortColumn: currentSortColumn,
+        sortDirection: currentSortDirection,
+        currentPage: parseInt(document.getElementById('currentPage')?.textContent || '1')
+    };
+    
+    // Store in sessionStorage so it persists during the session
+    sessionStorage.setItem('gttTableState', JSON.stringify(state));
+    return state;
+}
+
+/**
+ * Restore table state from saved state
+ */
+function restoreTableState() {
+    try {
+        const savedState = sessionStorage.getItem('gttTableState');
+        if (!savedState) return null;
+        
+        const state = JSON.parse(savedState);
+        
+        // Restore form values
+        const searchInput = document.getElementById('searchInput');
+        const advancedSearchInput = document.getElementById('advancedSearchInput');
+        const orderTypeFilter = document.getElementById('orderTypeFilter');
+        const kiteStatusFilter = document.getElementById('kiteStatusFilter');
+        const recordsPerPage = document.getElementById('recordsPerPage');
+        
+        if (searchInput && state.search) searchInput.value = state.search;
+        if (advancedSearchInput && state.advancedSearch) advancedSearchInput.value = state.advancedSearch;
+        if (orderTypeFilter && state.orderType) orderTypeFilter.value = state.orderType;
+        if (kiteStatusFilter && state.kiteStatus) kiteStatusFilter.value = state.kiteStatus;
+        if (recordsPerPage && state.recordsPerPage) recordsPerPage.value = state.recordsPerPage;
+        
+        // Restore sorting
+        currentSortColumn = state.sortColumn;
+        currentSortDirection = state.sortDirection;
+        
+        return state;
+    } catch (error) {
+        console.error('Error restoring table state:', error);
+        return null;
+    }
+}
+
+/**
+ * Refresh table data while preserving current state
+ */
+function refreshTableWithState() {
+    // Save current state before refresh
+    const currentState = saveTableState();
+    
+    // Load table data which will use the saved state
+    loadTableData();
+    
+    console.log('Table refreshed with preserved state:', currentState);
+}
+
+/**
+ * Clear saved table state (use when user explicitly wants to reset)
+ */
+function clearTableState() {
+    sessionStorage.removeItem('gttTableState');
+    console.log('Table state cleared');
+}
+
+/**
+ * Reset table to default state and clear all filters
+ */
+function resetTableToDefault() {
+    // Clear saved state
+    clearTableState();
+    
+    // Reset all form inputs
+    const searchInput = document.getElementById('searchInput');
+    const advancedSearchInput = document.getElementById('advancedSearchInput');
+    const orderTypeFilter = document.getElementById('orderTypeFilter');
+    const kiteStatusFilter = document.getElementById('kiteStatusFilter');
+    const recordsPerPage = document.getElementById('recordsPerPage');
+    
+    if (searchInput) searchInput.value = '';
+    if (advancedSearchInput) advancedSearchInput.value = '';
+    if (orderTypeFilter) orderTypeFilter.value = '';
+    if (kiteStatusFilter) kiteStatusFilter.value = '';
+    if (recordsPerPage) recordsPerPage.value = '-1';
+    
+    // Reset sorting
+    currentSortColumn = null;
+    currentSortDirection = 'asc';
+    
+    // Reload table with default state
+    loadTableData();
+    
+    console.log('Table reset to default state');
+}
 
 /**
  * Updates the orders table with data from the API
@@ -865,6 +1005,12 @@ function showOrderModal(orderId = null) {
                 setFieldValue('notes', order.notes);
                 setFieldValue('niftyRank', order.nifty_rank);
                 
+                // Clear the manual flag for quantity to allow auto-calculation
+                const quantityField = document.getElementById('quantity');
+                if (quantityField) {
+                    delete quantityField.dataset.manuallySet;
+                }
+                
                 // Handle trigger type fields
                 const triggerType = order.trigger_type || 'single';
                 toggleTriggerFields(triggerType);
@@ -899,6 +1045,12 @@ function showOrderModal(orderId = null) {
         document.getElementById('exchange').value = 'NSE';
         document.getElementById('orderType').value = 'BUY';
         
+        // Clear the manual flag for quantity to allow auto-calculation for new orders
+        const quantityField = document.getElementById('quantity');
+        if (quantityField) {
+            delete quantityField.dataset.manuallySet;
+        }
+        
         // Show only single trigger fields
         toggleTriggerFields('single');
         
@@ -927,7 +1079,8 @@ function toggleTriggerFields(triggerType) {
  * Update the order amount based on form inputs
  */
 function updateOrderAmount() {
-    const quantity = parseInt(document.getElementById('quantity').value) || 0;
+    const quantityInput = document.getElementById('quantity');
+    let quantity = parseInt(quantityInput.value) || 0;
     const triggerType = document.getElementById('triggerType').value;
     let price = parseFloat(document.getElementById('lastPrice').value) || 0;
     
@@ -935,12 +1088,38 @@ function updateOrderAmount() {
         const triggerPrice = parseFloat(document.getElementById('triggerPrice').value) || 0;
         if (triggerPrice > 0) {
             price = triggerPrice;
+            
+            // Auto-calculate quantity based on ₹30,000 max amount if quantity is 0 or not manually set
+            if (quantity === 0 || !quantityInput.dataset.manuallySet) {
+                const maxAmount = 30000;
+                const calculatedQuantity = Math.floor(maxAmount / triggerPrice);
+                if (calculatedQuantity > 0) {
+                    quantity = calculatedQuantity;
+                    quantityInput.value = quantity;
+                    // Mark as auto-calculated (not manually set)
+                    delete quantityInput.dataset.manuallySet;
+                    console.log(`Auto-calculated quantity: ${quantity} (₹${maxAmount} / ₹${triggerPrice})`);
+                }
+            }
         }
     } else if (triggerType === 'two-leg') {
         // For two-leg, we'll use the stop-loss price for calculation
         const stopLoss = parseFloat(document.getElementById('stopLoss').value) || 0;
         if (stopLoss > 0) {
             price = stopLoss;
+            
+            // Auto-calculate quantity based on ₹30,000 max amount if quantity is 0 or not manually set
+            if (quantity === 0 || !quantityInput.dataset.manuallySet) {
+                const maxAmount = 30000;
+                const calculatedQuantity = Math.floor(maxAmount / stopLoss);
+                if (calculatedQuantity > 0) {
+                    quantity = calculatedQuantity;
+                    quantityInput.value = quantity;
+                    // Mark as auto-calculated (not manually set)
+                    delete quantityInput.dataset.manuallySet;
+                    console.log(`Auto-calculated quantity: ${quantity} (₹${maxAmount} / ₹${stopLoss})`);
+                }
+            }
         }
     }
     
@@ -1217,12 +1396,8 @@ function saveOrder() {
             // Show success message
             showToast(orderId ? 'Order updated successfully' : 'Order saved successfully', 'success');
             
-            // Refresh table data
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                const event = new Event('input', { bubbles: true });
-                searchInput.dispatchEvent(event);
-            }
+            // Refresh table data while preserving state
+            refreshTableWithState();
         })
         .catch(error => {
             // Reset button
@@ -1274,12 +1449,8 @@ function deleteOrder(orderId) {
                     
                     showToast('Order deleted successfully', 'success');
                     
-                    // Refresh table data
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput) {
-                        const event = new Event('input', { bubbles: true });
-                        searchInput.dispatchEvent(event);
-                    }
+                    // Refresh table data while preserving state
+                    refreshTableWithState();
                 })
                 .catch(error => {
                     console.error('Error deleting order:', error);
@@ -1322,12 +1493,8 @@ function placeOrder(orderId) {
                     
                     showToast(`Order placed on Kite with trigger ID: ${data.trigger_id}`, 'success');
                     
-                    // Refresh table data
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput) {
-                        const event = new Event('input', { bubbles: true });
-                        searchInput.dispatchEvent(event);
-                    }
+                    // Refresh table data while preserving state
+                    refreshTableWithState();
                 })
                 .catch(error => {
                     // Reset button
@@ -1376,12 +1543,8 @@ function placeMultipleOrders(orderIds) {
             showToast(`Successfully placed ${successCount} orders, ${failedCount} failed`, 
                 failedCount > 0 ? 'warning' : 'success');
             
-            // Refresh table data
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                const event = new Event('input', { bubbles: true });
-                searchInput.dispatchEvent(event);
-            }
+            // Refresh table data while preserving state
+            refreshTableWithState();
         })
         .catch(error => {
             // Reset button
@@ -1426,12 +1589,8 @@ function deleteMultipleOrders(orderIds) {
             showToast(`Successfully deleted ${successCount} orders${failedCount > 0 ? `, ${failedCount} failed` : ''}`, 
                 failedCount > 0 ? 'warning' : 'success');
             
-            // Refresh table data
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                const event = new Event('input', { bubbles: true });
-                searchInput.dispatchEvent(event);
-            }
+            // Refresh table data while preserving state
+            refreshTableWithState();
             
             // Clear all checkboxes
             const selectAllCheckbox = document.getElementById('selectAll');
@@ -1476,12 +1635,8 @@ function resetOrder(orderId) {
                     
                     showToast('Order status reset successfully', 'success');
                     
-                    // Refresh table data
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput) {
-                        const event = new Event('input', { bubbles: true });
-                        searchInput.dispatchEvent(event);
-                    }
+                    // Refresh table data while preserving state
+                    refreshTableWithState();
                 })
                 .catch(error => {
                     console.error('Error resetting order status:', error);
@@ -1607,8 +1762,13 @@ function loadTableData() {
     const searchInput = document.getElementById('searchInput');
     const advancedSearchInput = document.getElementById('advancedSearchInput');
     
+    // Check if we need to restore state
+    const savedState = restoreTableState();
+    const currentPageEl = document.getElementById('currentPage');
+    const currentPage = savedState?.currentPage || parseInt(currentPageEl?.textContent || '1');
+    
     const params = new URLSearchParams({
-        page: 1
+        page: currentPage
     });
     
     // Handle the per_page parameter correctly
@@ -1670,6 +1830,9 @@ function loadTableData() {
             }
             
             updateOrdersTable(data);
+            
+            // Update sort headers to reflect current state
+            updateSortHeaders();
         })
         .catch(error => {
             console.error('Error loading table data:', error);
@@ -2088,6 +2251,384 @@ function openTradingViewPopup(url, symbol) {
         window.open(url, '_blank');
     }
 }
+
+// Saved Filters Management
+class SavedFiltersManager {
+    constructor() {
+        this.savedFilters = [];
+        this.initializeEventListeners();
+        this.loadSavedFilters();
+    }
+
+    initializeEventListeners() {
+        // Save current filter button
+        const saveCurrentFilterBtn = document.getElementById('saveCurrentFilter');
+        if (saveCurrentFilterBtn) {
+            saveCurrentFilterBtn.addEventListener('click', () => {
+                this.showSaveFilterModal();
+            });
+        }
+
+        // Manage filters button
+        const manageFiltersBtn = document.getElementById('manageFilters');
+        if (manageFiltersBtn) {
+            manageFiltersBtn.addEventListener('click', () => {
+                this.showManageFiltersModal();
+            });
+        }
+
+        // Save filter confirmation
+        const confirmSaveFilterBtn = document.getElementById('confirmSaveFilter');
+        if (confirmSaveFilterBtn) {
+            confirmSaveFilterBtn.addEventListener('click', () => {
+                this.saveFilter();
+            });
+        }
+
+        // Export filters
+        const exportFiltersBtn = document.getElementById('exportFilters');
+        if (exportFiltersBtn) {
+            exportFiltersBtn.addEventListener('click', () => {
+                this.exportFilters();
+            });
+        }
+
+        // Import filters
+        const importFiltersBtn = document.getElementById('importFilters');
+        if (importFiltersBtn) {
+            importFiltersBtn.addEventListener('click', () => {
+                document.getElementById('importFiltersFile').click();
+            });
+        }
+
+        // Import file change
+        const importFileInput = document.getElementById('importFiltersFile');
+        if (importFileInput) {
+            importFileInput.addEventListener('change', (e) => {
+                this.importFilters(e.target.files[0]);
+            });
+        }
+    }
+
+    async loadSavedFilters() {
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.savedFilters = data.filters;
+                this.updateSavedFiltersMenu();
+            } else {
+                console.error('Failed to load saved filters:', data.error);
+            }
+        } catch (error) {
+            console.error('Error loading saved filters:', error);
+        }
+    }
+
+    updateSavedFiltersMenu() {
+        const menu = document.getElementById('savedFiltersMenu');
+        if (!menu) return;
+
+        // Remove existing filter items
+        const existingItems = menu.querySelectorAll('.saved-filter-item');
+        existingItems.forEach(item => item.remove());
+
+        const noFiltersItem = document.getElementById('noSavedFilters');
+        
+        if (this.savedFilters.length === 0) {
+            if (noFiltersItem) {
+                noFiltersItem.style.display = 'block';
+            }
+        } else {
+            if (noFiltersItem) {
+                noFiltersItem.style.display = 'none';
+            }
+
+            // Add saved filters
+            this.savedFilters.forEach(filter => {
+                const listItem = document.createElement('li');
+                listItem.className = 'saved-filter-item';
+                
+                const link = document.createElement('a');
+                link.className = 'dropdown-item d-flex justify-content-between align-items-center';
+                link.href = '#';
+                
+                const filterInfo = document.createElement('div');
+                filterInfo.innerHTML = `
+                    <strong>${filter.name}</strong><br>
+                    <small class="text-muted">${filter.query}</small>
+                `;
+                
+                const usageInfo = document.createElement('small');
+                usageInfo.className = 'text-muted';
+                usageInfo.textContent = `Used ${filter.usage_count || 0} times`;
+                
+                link.appendChild(filterInfo);
+                link.appendChild(usageInfo);
+                
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.applyFilter(filter);
+                });
+                
+                listItem.appendChild(link);
+                menu.appendChild(listItem);
+            });
+        }
+    }
+
+    showSaveFilterModal() {
+        const advancedSearchInput = document.getElementById('advancedSearchInput');
+        const query = advancedSearchInput ? advancedSearchInput.value.trim() : '';
+        
+        if (!query) {
+            showToast('Please enter an advanced search query first', 'warning');
+            return;
+        }
+
+        // Populate the modal
+        const filterQueryTextarea = document.getElementById('filterQuery');
+        if (filterQueryTextarea) {
+            filterQueryTextarea.value = query;
+        }
+
+        // Clear previous values
+        const filterNameInput = document.getElementById('filterName');
+        const filterDescriptionTextarea = document.getElementById('filterDescription');
+        if (filterNameInput) filterNameInput.value = '';
+        if (filterDescriptionTextarea) filterDescriptionTextarea.value = '';
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('saveFilterModal'));
+        modal.show();
+    }
+
+    async saveFilter() {
+        const name = document.getElementById('filterName').value.trim();
+        const query = document.getElementById('filterQuery').value.trim();
+        const description = document.getElementById('filterDescription').value.trim();
+
+        if (!name) {
+            showToast('Filter name is required', 'error');
+            return;
+        }
+
+        if (!query) {
+            showToast('Filter query is required', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, query, description })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Filter "${name}" saved successfully`, 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('saveFilterModal'));
+                modal.hide();
+                
+                // Reload filters
+                await this.loadSavedFilters();
+            } else {
+                showToast(data.error || 'Failed to save filter', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving filter:', error);
+            showToast('Error saving filter', 'error');
+        }
+    }
+
+    async applyFilter(filter) {
+        try {
+            // Mark filter as used
+            await fetch(`/api/saved-filters/saved-filters/${filter.id}/use`, {
+                method: 'POST'
+            });
+
+            // Apply the filter
+            const advancedSearchInput = document.getElementById('advancedSearchInput');
+            if (advancedSearchInput) {
+                advancedSearchInput.value = filter.query;
+                
+                // Trigger search
+                const event = new Event('input', { bubbles: true });
+                advancedSearchInput.dispatchEvent(event);
+            }
+
+            showToast(`Applied filter: ${filter.name}`, 'success');
+            
+            // Reload filters to update usage count
+            await this.loadSavedFilters();
+        } catch (error) {
+            console.error('Error applying filter:', error);
+            showToast('Error applying filter', 'error');
+        }
+    }
+
+    async showManageFiltersModal() {
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('manageFiltersModal'));
+        modal.show();
+
+        // Load filters table
+        await this.loadFiltersTable();
+    }
+
+    async loadFiltersTable() {
+        const tableBody = document.getElementById('filtersTableBody');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Loading filters...</td></tr>';
+
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters');
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.filters.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No saved filters</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = '';
+                
+                data.filters.forEach(filter => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>
+                            <strong>${filter.name}</strong>
+                            ${filter.description ? `<br><small class="text-muted">${filter.description}</small>` : ''}
+                        </td>
+                        <td><code>${filter.query}</code></td>
+                        <td>${filter.usage_count || 0} times</td>
+                        <td><small>${new Date(filter.created_at).toLocaleDateString()}</small></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="savedFiltersManager.applyFilter(${JSON.stringify(filter).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="savedFiltersManager.deleteFilter(${filter.id}, '${filter.name}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading filters</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading filters table:', error);
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading filters</td></tr>';
+        }
+    }
+
+    async deleteFilter(filterId, filterName) {
+        if (!confirm(`Are you sure you want to delete the filter "${filterName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/saved-filters/saved-filters/${filterId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Filter "${filterName}" deleted successfully`, 'success');
+                
+                // Reload filters
+                await this.loadSavedFilters();
+                await this.loadFiltersTable();
+            } else {
+                showToast(data.error || 'Failed to delete filter', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting filter:', error);
+            showToast('Error deleting filter', 'error');
+        }
+    }
+
+    async exportFilters() {
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters/export');
+            const data = await response.json();
+
+            if (data.success) {
+                const blob = new Blob([JSON.stringify(data.filters, null, 2)], {
+                    type: 'application/json'
+                });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `gtt-saved-filters-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('Filters exported successfully', 'success');
+            } else {
+                showToast(data.error || 'Failed to export filters', 'error');
+            }
+        } catch (error) {
+            console.error('Error exporting filters:', error);
+            showToast('Error exporting filters', 'error');
+        }
+    }
+
+    async importFilters(file) {
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const filters = JSON.parse(text);
+
+            const response = await fetch('/api/saved-filters/saved-filters/import', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filters, overwrite: false })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Imported ${data.imported} filters, skipped ${data.skipped} duplicates`, 'success');
+                
+                // Reload filters
+                await this.loadSavedFilters();
+                await this.loadFiltersTable();
+            } else {
+                showToast(data.error || 'Failed to import filters', 'error');
+            }
+        } catch (error) {
+            console.error('Error importing filters:', error);
+            showToast('Error importing filters. Please check the file format.', 'error');
+        }
+
+        // Clear file input
+        document.getElementById('importFiltersFile').value = '';
+    }
+}
+
+// Initialize saved filters manager
+let savedFiltersManager;
+document.addEventListener('DOMContentLoaded', function() {
+    savedFiltersManager = new SavedFiltersManager();
+});
 
 // Make functions globally available
 window.applyGridLayout = applyGridLayout;

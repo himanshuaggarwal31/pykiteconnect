@@ -333,7 +333,8 @@ def parse_advanced_search(advanced_search):
             'PRICE': 'last_price',
             'SYMBOL': 'symbol',
             'RANK': 'nifty_rank',
-            'NIFTY_RANK': 'nifty_rank'
+            'NIFTY_RANK': 'nifty_rank',
+            'PCT_CHG': 'CASE WHEN trigger_price > 0 THEN ((last_price - trigger_price) / trigger_price) * 100 ELSE 0 END'  # Percentage change
         }
         
         # Split by AND/OR while preserving the operators
@@ -498,7 +499,8 @@ def get_custom_gtt_orders(search='', advanced_search='', order_type='', kite_sta
                 'nifty_rank': 'nifty_rank',
                 'placed_on_kite': 'placed_on_kite',
                 'created_at': 'created_at',
-                'updated_at': 'updated_at'
+                'updated_at': 'updated_at',
+                'pct_chg': 'CASE WHEN trigger_price > 0 THEN ((last_price - trigger_price) / trigger_price) * 100 ELSE 0 END'
             }
             
             # Validate sort column
