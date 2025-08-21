@@ -1,0 +1,209 @@
+/* Layout and Sidebar Toggle Styles */
+
+.wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* Toggle Button */
+.toggle-btn {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1050;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 2px solid #1a73e8;
+    color: #1a73e8;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+    background: #1a73e8;
+    color: #fff;
+    transform: scale(1.05);
+}
+
+.toggle-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.25rem rgba(26, 115, 232, 0.25);
+}
+
+/* Sidebar Styles */
+.sidebar-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+    z-index: 1040;
+    overflow-y: auto;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+}
+
+.sidebar-nav.hidden {
+    transform: translateX(-100%);
+}
+
+.sidebar-header {
+    padding: 20px;
+    background: rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav .components {
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav .components li {
+    list-style: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-nav .components li a {
+    display: block;
+    padding: 15px 20px;
+    color: rgba(255,255,255,0.9);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.sidebar-nav .components li a:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    transform: translateX(5px);
+}
+
+.sidebar-nav .components li.active a {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border-left: 4px solid #fff;
+}
+
+.sidebar-nav .components li a i {
+    width: 20px;
+    text-align: center;
+    margin-right: 10px;
+}
+
+/* Main Content Area */
+#content {
+    margin-left: 280px;
+    transition: margin-left 0.3s ease;
+    min-height: 100vh;
+    padding-top: 20px;
+}
+
+#content.expanded {
+    margin-left: 0;
+}
+
+/* Content wrapper adjustments */
+#content .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* Toggle button position adjustment when sidebar is hidden */
+body.sidebar-hidden .toggle-btn {
+    left: 15px;
+}
+
+body.sidebar-visible .toggle-btn {
+    left: 295px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .sidebar-nav {
+        width: 250px;
+        transform: translateX(-100%);
+    }
+    
+    #content {
+        margin-left: 0;
+    }
+    
+    .toggle-btn {
+        left: 15px !important;
+    }
+    
+    .sidebar-nav.show {
+        transform: translateX(0);
+    }
+    
+    /* Overlay for mobile */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1030;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Animation for smooth transitions */
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+}
+
+/* Focus indicators for accessibility */
+.sidebar-nav a:focus {
+    outline: 2px solid #fff;
+    outline-offset: -2px;
+}
+
+/* Scrollbar styling for sidebar */
+.sidebar-nav::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}

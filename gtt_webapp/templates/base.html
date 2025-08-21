@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" />
     <!-- Shared Table Styling -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/shared-table.css') }}">
+    <!-- Layout and Toggle Styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
     <!-- Custom GTT Styling -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-gtt.css') }}">
     
@@ -24,8 +26,13 @@
 </head>
 <body>
     <div class="wrapper d-flex">
+        <!-- Toggle button for sidebar -->
+        <button id="toggleSidebar" class="btn btn-outline-secondary toggle-btn" title="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+        
         <!-- Sidebar -->
-        <nav id="sidebar" class="active">
+        <nav id="sidebar" class="sidebar-nav">
             <div class="sidebar-header">
                 <h3><i class="fas fa-chart-line me-2"></i>GTT Dashboard</h3>
             </div>
@@ -65,15 +72,159 @@
         </nav>
 
         <!-- Page Content -->
-        <div id="content" class="flex-grow-1">
+        <div id="content">
             <div class="container-fluid py-2">
                 {% block content %}{% endblock %}
             </div>
         </div>
+        
+        <!-- Mobile overlay -->
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
     </div>
 
     <!-- Load Bootstrap JS first so it's available for other scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Sidebar Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            const overlay = document.getElementById('sidebarOverlay');
+            const body = document.body;
+            
+            // Check if we're on mobile
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            // Load saved state from localStorage
+            function loadSidebarState() {
+                const savedState = localStorage.getItem('sidebarVisible');
+                if (savedState !== null) {
+                    const isVisible = savedState === 'true';
+                    setSidebarState(isVisible, false); // false = no animation on load
+                } else {
+                    // Default state: visible on desktop, hidden on mobile
+                    setSidebarState(!isMobile(), false);
+                }
+            }
+            
+            // Set sidebar state
+            function setSidebarState(isVisible, animate = true) {
+                if (animate) {
+                    sidebar.style.transition = 'transform 0.3s ease';
+                    content.style.transition = 'margin-left 0.3s ease';
+                } else {
+                    sidebar.style.transition = 'none';
+                    content.style.transition = 'none';
+                }
+                
+                if (isVisible) {
+                    sidebar.classList.remove('hidden');
+                    if (!isMobile()) {
+                        content.classList.remove('expanded');
+                    }
+                    body.classList.add('sidebar-visible');
+                    body.classList.remove('sidebar-hidden');
+                    
+                    // Update toggle button icon
+                    toggleBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    toggleBtn.title = 'Hide Sidebar';
+                    
+                    if (isMobile()) {
+                        sidebar.classList.add('show');
+                        overlay.classList.add('show');
+                    }
+                } else {
+                    sidebar.classList.add('hidden');
+                    content.classList.add('expanded');
+                    body.classList.add('sidebar-hidden');
+                    body.classList.remove('sidebar-visible');
+                    
+                    // Update toggle button icon
+                    toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                    toggleBtn.title = 'Show Sidebar';
+                    
+                    if (isMobile()) {
+                        sidebar.classList.remove('show');
+                        overlay.classList.remove('show');
+                    }
+                }
+                
+                // Save state to localStorage
+                localStorage.setItem('sidebarVisible', isVisible.toString());
+                
+                // Restore transition after a brief delay
+                if (!animate) {
+                    setTimeout(() => {
+                        sidebar.style.transition = '';
+                        content.style.transition = '';
+                    }, 50);
+                }
+            }
+            
+            // Toggle sidebar
+            function toggleSidebar() {
+                const isCurrentlyVisible = !sidebar.classList.contains('hidden');
+                setSidebarState(!isCurrentlyVisible);
+            }
+            
+            // Event listeners
+            toggleBtn.addEventListener('click', toggleSidebar);
+            
+            // Close sidebar when clicking overlay (mobile)
+            overlay.addEventListener('click', function() {
+                if (isMobile()) {
+                    setSidebarState(false);
+                }
+            });
+            
+            // Handle window resize
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(function() {
+                    const wasVisible = !sidebar.classList.contains('hidden');
+                    
+                    if (isMobile()) {
+                        // On mobile, always hide initially and remove desktop margins
+                        content.classList.add('expanded');
+                        if (wasVisible) {
+                            sidebar.classList.add('show');
+                            overlay.classList.add('show');
+                        }
+                    } else {
+                        // On desktop, restore proper margins and hide overlay
+                        sidebar.classList.remove('show');
+                        overlay.classList.remove('show');
+                        if (wasVisible) {
+                            content.classList.remove('expanded');
+                        }
+                    }
+                }, 250);
+            });
+            
+            // Keyboard accessibility
+            document.addEventListener('keydown', function(e) {
+                // Toggle sidebar with Ctrl/Cmd + B
+                if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                    e.preventDefault();
+                    toggleSidebar();
+                }
+                
+                // Close sidebar with Escape key (mobile)
+                if (e.key === 'Escape' && isMobile() && !sidebar.classList.contains('hidden')) {
+                    setSidebarState(false);
+                }
+            });
+            
+            // Initialize sidebar state
+            loadSidebarState();
+        });
+    </script>
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>
