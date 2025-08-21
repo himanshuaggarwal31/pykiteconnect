@@ -3,6 +3,13 @@ import oracledb
 import logging
 from decimal import Decimal, InvalidOperation
 import traceback
+import sys
+import os
+
+# Add the parent directory to access auth module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from auth.simple_oauth import login_required, get_current_user
+from auth.access_control import feature_required, log_user_action
 
 custom_data_bp = Blueprint('custom_data', __name__)
 logger = logging.getLogger('custom_data')
@@ -18,10 +25,16 @@ def validate_decimal(value, field_name):
         raise ValueError(f"Invalid decimal value for {field_name}")
 
 @custom_data_bp.route('/')
+@login_required
+@feature_required('custom_data')
+@log_user_action('view_custom_data')
 def index():
     return render_template('custom_data/index.html')
 
 @custom_data_bp.route("/fetch", methods=["GET"])
+@login_required
+@feature_required('custom_data')
+@log_user_action('fetch_custom_data')
 def fetch_data():
     """Fetch data from the Custom_data table and return it as JSON."""
     logger.info("Fetching all custom data records")
@@ -60,6 +73,9 @@ def fetch_data():
             cursor.close()
 
 @custom_data_bp.route("/update", methods=["POST"])
+@login_required
+@feature_required('custom_data')
+@log_user_action('update_custom_data')
 def update_data():
     """Update a specific cell in the Custom_data table."""
     logger.info("Processing update request")
@@ -133,6 +149,9 @@ def update_data():
             cursor.close()
 
 @custom_data_bp.route("/delete", methods=["POST"])
+@login_required
+@feature_required('custom_data')
+@log_user_action('delete_custom_data')
 def delete_data():
     """Delete a record from the Custom_data table based on the Symbol."""
     logger.info("Processing delete request")
@@ -178,6 +197,9 @@ def delete_data():
             cursor.close()
 
 @custom_data_bp.route("/add", methods=["POST"])
+@login_required
+@feature_required('custom_data')
+@log_user_action('add_custom_data')
 def add_data():
     """Add a new record to the Custom_data table."""
     logger.info("Processing add request")

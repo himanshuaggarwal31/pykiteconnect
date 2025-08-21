@@ -1,18 +1,26 @@
 from flask import Flask, flash, current_app, request
 from flask_assets import Environment, Bundle
 from flask_bootstrap import Bootstrap5
+from flask_session import Session
 from dotenv import load_dotenv
 import oracledb
 from db_config import configuration
 import os
+import sys
 import warnings
 from kiteconnect import KiteConnect
 import atexit
 from logging_config import setup_logging
 import logging
 
-# Load environment variables
-load_dotenv()
+# Add the parent directory to the Python path to access auth module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from auth.simple_oauth import auth_bp, login_required, admin_required, get_current_user
+from auth.profile_management import profile_bp
+from auth.config import AppConfig
+
+# Load environment variables from webapp's .env file
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # Initialize extensions
@@ -21,30 +29,63 @@ bootstrap = Bootstrap5()
 
 def get_kite_instance():
     """Get or create KiteConnect instance with lazy initialization"""
-    if current_app.config.get('kite') is not None:
-        return current_app.config['kite']
-        
-    api_key = current_app.config.get('kite_api_key')
-    access_token = current_app.config.get('kite_access_token')
+    print("=== GET_KITE_INSTANCE CALLED ===")
+    from auth.config import OAuthConfig
     
+    if current_app.config.get('kite') is not None:
+        print("Using cached KiteConnect instance")
+        return current_app.config['kite']
+    
+    # In bypass mode, always use the app config credentials
+    if OAuthConfig.BYPASS_AUTH:
+        api_key = current_app.config.get('kite_api_key')
+        access_token = current_app.config.get('kite_access_token')
+        print(f"Bypass mode: Using app config credentials - API: {api_key}, Token: {access_token[:20] if access_token else None}...")
+        current_app.logger.debug(f"Bypass mode: Using app config credentials")
+    else:
+        # In normal mode, try to get from user's trading config first
+        from flask import session
+        from auth.database import user_db
+        
+        user_id = session.get('user_id')
+        if user_id and user_id != 999:
+            trading_config = user_db.get_trading_config(user_id)
+            if trading_config:
+                api_key = trading_config.get('kite_api_key')
+                access_token = trading_config.get('kite_access_token')
+                current_app.logger.debug(f"Using user {user_id} trading config credentials")
+            else:
+                current_app.logger.debug(f"No trading config found for user {user_id}, falling back to app config")
+                api_key = current_app.config.get('kite_api_key')
+                access_token = current_app.config.get('kite_access_token')
+        else:
+            api_key = current_app.config.get('kite_api_key')
+            access_token = current_app.config.get('kite_access_token')
+        
     if not api_key or not access_token:
         current_app.logger.error("KiteConnect credentials not available")
+        print(f"MISSING CREDENTIALS - API: {api_key}, Token: {access_token}")
         return None
         
     try:
-        current_app.logger.debug("Creating new KiteConnect instance...")
+        print(f"Creating KiteConnect instance with API: {api_key}, Token: {access_token[:20]}...")
+        current_app.logger.debug(f"Creating new KiteConnect instance with API key: {api_key}, Access token: {access_token[:20]}...")
         kite = KiteConnect(api_key=api_key)
         kite.set_access_token(access_token)
         
+        print("Testing connection...")
         # Test the connection
         profile = kite.profile()
+        print(f"Connection successful! User: {profile.get('user_name', 'Unknown')}")
         current_app.logger.info(f"KiteConnect connection successful. User: {profile.get('user_name', 'Unknown')}")
         
         # Cache the working instance
         current_app.config['kite'] = kite
+        print(f"Cached working KiteConnect instance")
         return kite
         
     except Exception as e:
+        print(f"ERROR creating KiteConnect instance: {str(e)}")
         current_app.logger.error(f"Failed to create KiteConnect instance: {str(e)}")
         return None
 
@@ -57,8 +98,58 @@ def create_app():
     logger.info("Application initialization starting...")
 
     # Configuration
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
-    logger.debug(f"SECRET_KEY set: {app.config['SECRET_KEY']!r}")
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', AppConfig.SECRET_KEY)
+    app.config['SESSION_TYPE'] = AppConfig.SESSION_TYPE
+    app.config['SESSION_PERMANENT'] = AppConfig.SESSION_PERMANENT
+    app.config['SESSION_USE_SIGNER'] = AppConfig.SESSION_USE_SIGNER
+    app.config['SESSION_KEY_PREFIX'] = AppConfig.SESSION_KEY_PREFIX
+    
+    logger.debug(f"SECRET_KEY set for authentication")
+
+    # Initialize Flask-Session
+    Session(app)
+    logger.info("Flask-Session initialized for user authentication")
+
+    # Register authentication blueprint
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(profile_bp)
+    logger.info("Authentication and profile blueprints registered")
+
+    # Add authentication context to all templates
+    @app.context_processor
+    def inject_auth():
+        """Make authentication status available to all templates"""
+        try:
+            from auth.config import OAuthConfig
+            from auth.database import user_db
+            from flask import session
+            
+            user = get_current_user()
+            
+            def has_feature_access(feature_name):
+                """Check if current user has access to a feature"""
+                if OAuthConfig.BYPASS_AUTH:
+                    return True
+                user_id = session.get('user_id')
+                if not user_id or user_id == 999:  # bypass user
+                    return True
+                return user_db.has_feature_access(user_id, feature_name)
+            
+            return {
+                'current_user': user,
+                'is_authenticated': user is not None or OAuthConfig.BYPASS_AUTH,
+                'is_admin': user.get('is_admin', False) if user else OAuthConfig.BYPASS_AUTH,
+                'bypass_mode': OAuthConfig.BYPASS_AUTH,
+                'has_feature_access': has_feature_access
+            }
+        except:
+            return {
+                'current_user': None,
+                'is_authenticated': False,
+                'is_admin': False,
+                'bypass_mode': False,
+                'has_feature_access': lambda x: False
+            }
 
     # Initialize Oracle DB connection
     try:
@@ -90,10 +181,12 @@ def create_app():
 
     # Initialize KiteConnect
     try:
+        print("=== INITIALIZING KITECONNECT ===")
         logger.debug("Initializing KiteConnect...")
         
         # Try to get API key from environment variable first
         api_key = os.getenv('API_KEY')
+        print(f"API key from env: {api_key}")
         
         # If not found in environment, try to read from api_key.txt file
         if not api_key:
@@ -128,7 +221,7 @@ def create_app():
         app.config['kite_api_key'] = api_key
         app.config['kite_access_token'] = access_token
         app.config['kite'] = None  # Will be initialized lazily
-        logger.info("KiteConnect credentials loaded successfully")
+        logger.info(f"KiteConnect credentials loaded successfully: API Key={api_key}, Token={access_token[:20]}...")
                 
     except FileNotFoundError as e:
         logger.error(f"Required file not found: {str(e)}. Please ensure access_token.txt exists.")

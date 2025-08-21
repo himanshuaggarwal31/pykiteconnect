@@ -1,47 +1,31 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app, send_from_directory
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app, send_from_directory, session
 from datetime import datetime
 import os
+import sys
+
+# Add the parent directory to access auth module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from auth.simple_oauth import login_required, get_current_user
+from auth.access_control import feature_required, log_user_action, UserDataFilter
 
 main_bp = Blueprint('main', __name__)
 
-# Import the lazy KiteConnect function
-def get_kite_instance():
-    """Get or create KiteConnect instance with lazy initialization"""
-    from kiteconnect import KiteConnect
-    
-    if current_app.config.get('kite') is not None:
-        return current_app.config['kite']
-        
-    api_key = current_app.config.get('kite_api_key')
-    access_token = current_app.config.get('kite_access_token')
-    
-    if not api_key or not access_token:
-        current_app.logger.error("KiteConnect credentials not available")
-        return None
-        
-    try:
-        current_app.logger.debug("Creating new KiteConnect instance...")
-        kite = KiteConnect(api_key=api_key)
-        kite.set_access_token(access_token)
-        
-        # Test the connection
-        profile = kite.profile()
-        current_app.logger.info(f"KiteConnect connection successful. User: {profile.get('user_name', 'Unknown')}")
-        
-        # Cache the working instance
-        current_app.config['kite'] = kite
-        return kite
-        
-    except Exception as e:
-        current_app.logger.error(f"Failed to create KiteConnect instance: {str(e)}")
-        return None
+# Import the lazy KiteConnect function from app level
+from app import get_kite_instance
 
 @main_bp.route('/')
 @main_bp.route('/dashboard')
+@login_required
+@feature_required('dashboard')
+@log_user_action('view_dashboard')
 def dashboard():
     """Simple welcome page for the app"""
     try:
         current_app.logger.info("Dashboard route called")
+        
+        # Get current user info
+        current_user = get_current_user()
+        
         kite = get_kite_instance()
         is_kite_connected = kite is not None
         current_app.logger.info(f"Kite connected: {is_kite_connected}")
@@ -63,13 +47,15 @@ def dashboard():
         # Use the dashboard template
         return render_template('dashboard.html', 
                              kite_connected=is_kite_connected, 
-                             stats=stats)
+                             stats=stats,
+                             current_user=current_user)
         
     except Exception as e:
         current_app.logger.error(f"Error in dashboard route: {str(e)}")
         return f"<h1>Route Error</h1><p>{str(e)}</p>"
 
 @main_bp.route('/kite-gtt-orders')
+@login_required
 def kite_gtt_orders():
     """Standalone Kite GTT Orders page"""
     try:
