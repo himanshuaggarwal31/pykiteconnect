@@ -66,6 +66,20 @@
 .instrument-info {
     font-size: 0.875rem;
     color: #6c757d;
+    display: none; /* Hide instrument token and product info */
+}
+
+.symbol-link {
+    color: #0d6efd;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.symbol-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
 }
 
 .refresh-btn {
@@ -130,6 +144,48 @@
     content: "\f0dd"; /* fa-sort-down */
 }
 
+/* Disabled sell button styles */
+.btn-sell:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+    position: relative;
+}
+
+.btn-sell:disabled:hover {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}
+
+.btn-sell[data-gtt-exists="true"] {
+    background-color: #868e96 !important;
+    border-color: #868e96 !important;
+    color: #fff !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    text-decoration: line-through;
+}
+
+.btn-sell[data-gtt-exists="true"]:hover {
+    background-color: #868e96 !important;
+    border-color: #868e96 !important;
+    color: #fff !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+.btn-sell[data-gtt-exists="true"]:before {
+    content: "🚫 ";
+    font-size: 0.8em;
+}
+
 .row-count-info {
     font-size: 0.875rem;
     color: #6c757d;
@@ -190,6 +246,10 @@
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="exportHoldings()">
                 <i class="fas fa-download me-1"></i>Export
+            </button>
+            <!-- Debug: Test TradingView Button -->
+            <button type="button" class="btn btn-outline-success btn-sm" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=NSE:RELIANCE', 'RELIANCE')">
+                <i class="fas fa-chart-line me-1"></i>Test TradingView
             </button>
         </div>
     </div>
@@ -336,6 +396,9 @@
                             Day Change %
                             <i class="fas fa-sort sort-icon"></i>
                         </th>
+                        <th class="text-center">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
                 <tbody id="holdingsTableBody">
@@ -346,7 +409,13 @@
                             data-symbol="{{ holding.tradingsymbol }}">
                             <td class="text-start">
                                 <div>
-                                    <strong>{{ holding.tradingsymbol }}</strong>
+                                    <strong>
+                                        <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol={{ holding.exchange }}:{{ holding.tradingsymbol }}', '{{ holding.tradingsymbol }}'); return false;" 
+                                           class="symbol-link" 
+                                           title="View {{ holding.tradingsymbol }} chart on TradingView">
+                                            {{ holding.tradingsymbol }}
+                                        </a>
+                                    </strong>
                                     <div class="instrument-info">
                                         {{ holding.instrument_token }} • {{ holding.product }}
                                     </div>
@@ -384,8 +453,149 @@
                                 {% set change_class = "profit" if day_change > 0 else ("loss" if day_change < 0 else "neutral") %}
                                 <span class="{{ change_class }}">{{ "%.2f"|format(day_change_pct) }}%</span>
                             </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger btn-sm btn-sell" 
+                                            onclick="showSellModal('{{ holding.tradingsymbol }}', '{{ holding.exchange }}', {{ holding.quantity }}, {{ holding.last_price }}, '{{ holding.product }}')"
+                                            title="Sell {{ holding.tradingsymbol }}">
+                                        <i class="fas fa-arrow-down"></i> Sell
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
+                    {% else %}
+                        <!-- Test data for debugging TradingView functionality -->
+                        <tr class="holding-row" data-exchange="NSE" data-symbol="RELIANCE">
+                            <td class="text-start">
+                                <div>
+                                    <strong>
+                                        <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=NSE:RELIANCE', 'RELIANCE'); return false;" 
+                                           class="symbol-link" 
+                                           title="View RELIANCE chart on TradingView">
+                                            RELIANCE
+                                        </a>
+                                    </strong>
+                                    <div class="instrument-info">
+                                        123456 • CNC
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">NSE</td>
+                            <td class="text-center">10</td>
+                            <td class="text-center">₹2500.00</td>
+                            <td class="text-center">₹2600.00</td>
+                            <td class="text-center">₹25000.00</td>
+                            <td class="text-center">₹26000.00</td>
+                            <td class="text-center">
+                                <span class="pnl-badge profit">₹1000.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="profit">4.00%</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="pnl-badge profit">₹50.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="profit">1.96%</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger btn-sm btn-sell" 
+                                            onclick="showSellModal('RELIANCE', 'NSE', 10, 2600.00, 'CNC')"
+                                            title="Sell RELIANCE">
+                                        <i class="fas fa-arrow-down"></i> Sell
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="holding-row" data-exchange="NSE" data-symbol="TCS">
+                            <td class="text-start">
+                                <div>
+                                    <strong>
+                                        <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=NSE:TCS', 'TCS'); return false;" 
+                                           class="symbol-link" 
+                                           title="View TCS chart on TradingView">
+                                            TCS
+                                        </a>
+                                    </strong>
+                                    <div class="instrument-info">
+                                        789012 • CNC
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">NSE</td>
+                            <td class="text-center">5</td>
+                            <td class="text-center">₹3800.00</td>
+                            <td class="text-center">₹3750.00</td>
+                            <td class="text-center">₹19000.00</td>
+                            <td class="text-center">₹18750.00</td>
+                            <td class="text-center">
+                                <span class="pnl-badge loss">-₹250.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="loss">-1.32%</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="pnl-badge loss">-₹25.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="loss">-0.66%</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger btn-sm btn-sell" 
+                                            onclick="showSellModal('TCS', 'NSE', 5, 3750.00, 'CNC')"
+                                            title="Sell TCS">
+                                        <i class="fas fa-arrow-down"></i> Sell
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Test ALLCARGO with actual GTT -->
+                        <tr class="holding-row" data-exchange="NSE" data-symbol="ALLCARGO">
+                            <td class="text-start">
+                                <div>
+                                    <strong>
+                                        <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=NSE:ALLCARGO', 'ALLCARGO'); return false;" 
+                                           class="symbol-link" 
+                                           title="View ALLCARGO chart on TradingView">
+                                            ALLCARGO
+                                        </a>
+                                    </strong>
+                                    <div class="instrument-info">
+                                        345678 • CNC
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">NSE</td>
+                            <td class="text-center">100</td>
+                            <td class="text-center">₹180.00</td>
+                            <td class="text-center">₹185.50</td>
+                            <td class="text-center">₹18000.00</td>
+                            <td class="text-center">₹18550.00</td>
+                            <td class="text-center">
+                                <span class="pnl-badge profit">₹550.00</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="profit">3.06%</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="pnl-badge profit">₹2.50</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="profit">1.37%</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger btn-sm btn-sell" 
+                                            onclick="showSellModal('ALLCARGO', 'NSE', 100, 185.50, 'CNC')"
+                                            title="Sell ALLCARGO">
+                                        <i class="fas fa-arrow-down"></i> Sell
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                     {% endif %}
                 </tbody>
             </table>
@@ -404,6 +614,90 @@
     <button type="button" class="btn btn-primary refresh-btn" onclick="refreshHoldings()" title="Refresh Holdings">
         <i class="fas fa-sync-alt"></i>
     </button>
+
+    <!-- Sell Modal -->
+    <div class="modal fade" id="sellModal" tabindex="-1" aria-labelledby="sellModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sellModalLabel">Sell <span id="sellSymbol"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Symbol:</strong> <span id="sellModalSymbol"></span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Exchange:</strong> <span id="sellModalExchange"></span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Available Qty:</strong> <span id="sellModalAvailableQty"></span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Last Price:</strong> ₹<span id="sellModalLastPrice"></span>
+                        </div>
+                    </div>
+
+                    <form id="sellForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sellQuantity" class="form-label">Quantity to Sell</label>
+                                <input type="number" class="form-control" id="sellQuantity" required min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="sellType" class="form-label">Order Type</label>
+                                <select class="form-select" id="sellType" required onchange="toggleSellTypeFields()">
+                                    <option value="">Select Order Type</option>
+                                    <option value="market">Market Order (Immediate)</option>
+                                    <option value="gtt-single">GTT Single-Leg (Stop Loss)</option>
+                                    <option value="gtt-two-leg">GTT Two-Leg (OCO)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- GTT Single-Leg Fields -->
+                        <div id="gttSingleFields" class="row mb-3" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="triggerPrice" class="form-label">Trigger Price</label>
+                                <input type="number" class="form-control" id="triggerPrice" step="0.01" placeholder="Price to trigger sell">
+                                <small class="form-text text-muted">Order will execute when price reaches this level</small>
+                            </div>
+                        </div>
+
+                        <!-- GTT Two-Leg Fields -->
+                        <div id="gttTwoLegFields" class="row mb-3" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="triggerPrice1" class="form-label">Trigger Price 1 (Stop Loss)</label>
+                                <input type="number" class="form-control" id="triggerPrice1" step="0.01" placeholder="Lower trigger price">
+                                <small class="form-text text-muted">Usually set below current price for stop loss</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="triggerPrice2" class="form-label">Trigger Price 2 (Target)</label>
+                                <input type="number" class="form-control" id="triggerPrice2" step="0.01" placeholder="Higher trigger price">
+                                <small class="form-text text-muted">Usually set above current price for profit booking</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong>Order Types:</strong>
+                            <ul class="mb-0">
+                                <li><strong>Market Order:</strong> Sell immediately at current market price</li>
+                                <li><strong>GTT Single-Leg:</strong> Set one trigger price for stop loss or target</li>
+                                <li><strong>GTT Two-Leg:</strong> Set both stop loss and target prices (One Cancels Other)</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="executeSellOrder()" id="sellExecuteBtn">
+                        <i class="fas fa-arrow-down"></i> Execute Sell Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -412,7 +706,7 @@
 // Global variables
 let allHoldings = [];
 let filteredHoldings = [];
-let currentRowLimit = 25;
+let currentRowLimit = -1;
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
 
@@ -455,6 +749,8 @@ function setupEventListeners() {
     // Row limit selector
     const lengthSelect = document.getElementById('holdingsLength');
     if (lengthSelect) {
+        // Initialize currentRowLimit with the selected dropdown value
+        currentRowLimit = parseInt(lengthSelect.value);
         lengthSelect.addEventListener('change', handleRowLimitChange);
     }
 }
@@ -601,7 +897,111 @@ function loadHoldingsFromServer() {
     // Update table display to show row count
     updateTableDisplay();
     
+    // Check GTT existence for all holdings and update sell button states
+    setTimeout(() => {
+        checkGTTExistenceForHoldings();
+    }, 500); // Add 500ms delay to ensure DOM is fully rendered
+    
     console.log(`Loaded ${allHoldings.length} holdings`);
+}
+
+// Function to check GTT existence for all holdings and update sell button states
+function checkGTTExistenceForHoldings() {
+    // Extract symbols from all holdings rows
+    const symbols = [];
+    allHoldings.forEach(row => {
+        const tradingsymbol = row.getAttribute('data-symbol');
+        const exchange = row.getAttribute('data-exchange');
+        if (tradingsymbol && exchange) {
+            symbols.push({
+                tradingsymbol: tradingsymbol,
+                exchange: exchange
+            });
+        }
+    });
+    
+    if (symbols.length === 0) {
+        return;
+    }
+    
+    console.log(`Checking GTT existence for ${symbols.length} symbols...`);
+    
+    // Call the bulk GTT check API
+    fetch('/holdings/api/check-gtt-exists-bulk', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            symbols: symbols
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update sell button states based on results
+            allHoldings.forEach(row => {
+                const tradingsymbol = row.getAttribute('data-symbol');
+                const exchange = row.getAttribute('data-exchange');
+                const symbolKey = `${exchange}:${tradingsymbol}`;
+                
+                const sellButton = row.querySelector('.btn-sell');
+                if (sellButton) {
+                    const hasGTT = data.results[symbolKey] || false;
+                    
+                    if (hasGTT) {
+                        // Disable button and add visual indication
+                        sellButton.disabled = true;
+                        sellButton.classList.add('btn-secondary');
+                        sellButton.classList.remove('btn-danger');
+                        sellButton.innerHTML = '<i class="fas fa-arrow-down me-1"></i>Sell';
+                        sellButton.title = 'Sell button disabled - GTT order exists for this symbol';
+                        sellButton.style.opacity = '0.6';
+                        sellButton.style.pointerEvents = 'none';
+                        sellButton.style.cursor = 'not-allowed';
+                        sellButton.setAttribute('data-gtt-exists', 'true');
+                        // Remove onclick handler to prevent any clicks
+                        sellButton.removeAttribute('onclick');
+                        sellButton.onclick = null;
+                        // Add a warning click handler instead
+                        sellButton.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            alert('Cannot sell ' + tradingsymbol + ' - GTT order already exists for this symbol.');
+                            return false;
+                        });
+                    } else {
+                        // Enable button
+                        sellButton.disabled = false;
+                        sellButton.classList.add('btn-danger');
+                        sellButton.classList.remove('btn-secondary');
+                        sellButton.innerHTML = '<i class="fas fa-arrow-down me-1"></i>Sell';
+                        sellButton.title = 'Sell this holding';
+                        sellButton.style.opacity = '1';
+                        sellButton.style.pointerEvents = 'auto';
+                        sellButton.style.cursor = 'pointer';
+                        sellButton.removeAttribute('data-gtt-exists');
+                        // Ensure onclick handler is working (restore if needed)
+                        if (!sellButton.getAttribute('onclick')) {
+                            const exchange = row.getAttribute('data-exchange');
+                            const quantity = row.cells[2]?.textContent?.trim() || '0';
+                            const lastPrice = (row.cells[4]?.textContent || '').replace(/[₹,\s]/g, '') || '0';
+                            const product = 'CNC'; // Default product
+                            sellButton.setAttribute('onclick', `showSellModal('${tradingsymbol}', '${exchange}', ${quantity}, ${lastPrice}, '${product}')`);
+                        }
+                    }
+                }
+            });
+            
+            // Update filtered holdings display to reflect button state changes
+            updateTableDisplay();
+        } else {
+            console.error('Error checking GTT existence:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error in GTT existence check:', error);
+    });
 }
 
 function refreshHoldings() {
@@ -616,6 +1016,9 @@ function refreshHoldings() {
             
             updateHoldingsTable(data.holdings);
             updateSummary(data.summary);
+            
+            // Re-load holdings data and check GTT existence
+            loadHoldingsFromServer();
             
             console.log('Holdings refreshed successfully');
         })
@@ -720,7 +1123,13 @@ function createHoldingRow(holding) {
     row.innerHTML = `
         <td class="text-start">
             <div>
-                <strong>${holding.tradingsymbol}</strong>
+                <strong>
+                    <a href="#" onclick="openTradingViewPopup('https://in.tradingview.com/chart/?symbol=${holding.exchange}:${holding.tradingsymbol}', '${holding.tradingsymbol}'); return false;" 
+                       class="symbol-link" 
+                       title="View ${holding.tradingsymbol} chart on TradingView">
+                        ${holding.tradingsymbol}
+                    </a>
+                </strong>
                 <div class="instrument-info">
                     ${holding.instrument_token} • ${holding.product}
                 </div>
@@ -744,6 +1153,15 @@ function createHoldingRow(holding) {
             <span class="${changeClass}">
                 ₹${dayChange.toFixed(2)} (${dayChangePct.toFixed(2)}%)
             </span>
+        </td>
+        <td class="text-center">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-danger btn-sm" 
+                        onclick="showSellModal('${holding.tradingsymbol}', '${holding.exchange}', ${holding.quantity}, ${holding.last_price}, '${holding.product}')"
+                        title="Sell ${holding.tradingsymbol}">
+                    <i class="fas fa-arrow-down"></i> Sell
+                </button>
+            </div>
         </td>
     `;
     
@@ -1000,6 +1418,276 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+/**
+ * Open TradingView chart in a popup window
+ */
+function openTradingViewPopup(url, symbol) {
+    // Popup window specifications - increased size for better chart viewing
+    const popupWidth = 1700;
+    const popupHeight = 900;
+    
+    // Calculate center position
+    const left = (screen.width - popupWidth) / 2;
+    const top = (screen.height - popupHeight) / 2;
+    
+    // Popup features
+    const features = [
+        `width=${popupWidth}`,
+        `height=${popupHeight}`,
+        `left=${left}`,
+        `top=${top}`,
+        'resizable=yes',
+        'scrollbars=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Open popup
+    const popup = window.open(url, `tradingview_${symbol}`, features);
+    
+    // Focus the popup window if it opened successfully
+    if (popup) {
+        popup.focus();
+    } else {
+        // Fallback if popup was blocked
+        alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
+        window.open(url, '_blank');
+    }
+}
+
+// Sell functionality
+let currentSellData = {};
+
+// Enhanced sell modal function with GTT existence check
+function showSellModal(tradingsymbol, exchange, quantity, lastPrice, product) {
+    // First, check if GTT exists for this symbol before opening modal
+    fetch('/holdings/api/check-gtt-exists-bulk', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            symbols: [{
+                tradingsymbol: tradingsymbol,
+                exchange: exchange
+            }]
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const symbolKey = `${exchange}:${tradingsymbol}`;
+            const hasGTT = data.results[symbolKey] || false;
+            
+            if (hasGTT) {
+                // GTT exists - block the modal from opening
+                alert(`⚠️ Cannot sell ${tradingsymbol}\n\nReason: GTT order already exists for this symbol.\n\nPlease cancel the existing GTT order first before placing a new sell order.`);
+                return;
+            }
+            
+            // No GTT - proceed with opening the modal
+            actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product);
+        } else {
+            console.error('GTT check failed:', data.error);
+            // If check fails, show warning but allow modal to open
+            if (confirm(`Warning: Could not verify GTT status for ${tradingsymbol}.\n\nDo you want to proceed with the sell order?`)) {
+                actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('GTT check error:', error);
+        // If check fails, show warning but allow modal to open
+        if (confirm(`Warning: Could not verify GTT status for ${tradingsymbol}.\n\nDo you want to proceed with the sell order?`)) {
+            actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product);
+        }
+    });
+}
+
+// The actual modal opening function (renamed from original showSellModal)
+function actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product) {
+    // First check if GTT exists for this symbol
+    const symbolKey = `${exchange}:${tradingsymbol}`;
+    
+    // Quick check using existing button state
+    const holdingRow = document.querySelector(`[data-symbol="${tradingsymbol}"][data-exchange="${exchange}"]`);
+    if (holdingRow) {
+        const sellButton = holdingRow.querySelector('.btn-sell');
+        if (sellButton && sellButton.getAttribute('data-gtt-exists') === 'true') {
+            alert(`Cannot sell ${tradingsymbol} - GTT order already exists for this symbol.\n\nPlease cancel the existing GTT order first before placing a new sell order.`);
+            return false;
+        }
+    }
+    
+    currentSellData = {
+        tradingsymbol: tradingsymbol,
+        exchange: exchange,
+        quantity: quantity,
+        lastPrice: lastPrice,
+        product: product
+    };
+    
+    // Populate modal with holding data
+    document.getElementById('sellSymbol').textContent = tradingsymbol;
+    document.getElementById('sellModalSymbol').textContent = tradingsymbol;
+    document.getElementById('sellModalExchange').textContent = exchange;
+    document.getElementById('sellModalAvailableQty').textContent = quantity;
+    document.getElementById('sellModalLastPrice').textContent = lastPrice.toFixed(2);
+    
+    // Reset form
+    document.getElementById('sellForm').reset();
+    document.getElementById('sellQuantity').setAttribute('max', quantity);
+    toggleSellTypeFields();
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('sellModal'));
+    modal.show();
+}
+
+function toggleSellTypeFields() {
+    const sellType = document.getElementById('sellType').value;
+    const gttSingleFields = document.getElementById('gttSingleFields');
+    const gttTwoLegFields = document.getElementById('gttTwoLegFields');
+    
+    // Hide all GTT fields first
+    gttSingleFields.style.display = 'none';
+    gttTwoLegFields.style.display = 'none';
+    
+    // Show relevant fields based on selection
+    if (sellType === 'gtt-single') {
+        gttSingleFields.style.display = 'block';
+    } else if (sellType === 'gtt-two-leg') {
+        gttTwoLegFields.style.display = 'block';
+    }
+}
+
+function executeSellOrder() {
+    const sellType = document.getElementById('sellType').value;
+    const quantity = parseInt(document.getElementById('sellQuantity').value);
+    
+    // Validate form
+    if (!sellType || !quantity || quantity <= 0 || quantity > currentSellData.quantity) {
+        alert('Please provide valid quantity and order type');
+        return;
+    }
+    
+    const sellButton = document.getElementById('sellExecuteBtn');
+    const originalText = sellButton.innerHTML;
+    sellButton.disabled = true;
+    sellButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    if (sellType === 'market') {
+        executeMarketSellOrder(quantity);
+    } else if (sellType === 'gtt-single') {
+        const triggerPrice = parseFloat(document.getElementById('triggerPrice').value);
+        if (!triggerPrice) {
+            alert('Please provide trigger price for GTT order');
+            sellButton.disabled = false;
+            sellButton.innerHTML = originalText;
+            return;
+        }
+        executeGttSellOrder(quantity, 'single', [triggerPrice]);
+    } else if (sellType === 'gtt-two-leg') {
+        const triggerPrice1 = parseFloat(document.getElementById('triggerPrice1').value);
+        const triggerPrice2 = parseFloat(document.getElementById('triggerPrice2').value);
+        if (!triggerPrice1 || !triggerPrice2) {
+            alert('Please provide both trigger prices for two-leg GTT order');
+            sellButton.disabled = false;
+            sellButton.innerHTML = originalText;
+            return;
+        }
+        executeGttSellOrder(quantity, 'two-leg', [triggerPrice1, triggerPrice2]);
+    }
+}
+
+function executeMarketSellOrder(quantity) {
+    const data = {
+        tradingsymbol: currentSellData.tradingsymbol,
+        exchange: currentSellData.exchange,
+        quantity: quantity,
+        product: currentSellData.product
+    };
+    
+    fetch('/holdings/api/sell/market', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Show success message
+        alert(`Market sell order placed successfully!\nOrder ID: ${data.order_id}\nQuantity: ${quantity} shares of ${currentSellData.tradingsymbol}`);
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('sellModal')).hide();
+        
+        // Refresh holdings
+        refreshHoldings();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`Error placing market sell order: ${error.message}`);
+    })
+    .finally(() => {
+        const sellButton = document.getElementById('sellExecuteBtn');
+        sellButton.disabled = false;
+        sellButton.innerHTML = '<i class="fas fa-arrow-down"></i> Execute Sell Order';
+    });
+}
+
+function executeGttSellOrder(quantity, triggerType, triggerPrices) {
+    const data = {
+        tradingsymbol: currentSellData.tradingsymbol,
+        exchange: currentSellData.exchange,
+        quantity: quantity,
+        product: currentSellData.product,
+        trigger_type: triggerType,
+        trigger_prices: triggerPrices,
+        last_price: currentSellData.lastPrice
+    };
+    
+    fetch('/holdings/api/sell/gtt', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Show success message
+        let message = `GTT sell order placed successfully!\nTrigger ID: ${data.trigger_id}\nQuantity: ${quantity} shares of ${currentSellData.tradingsymbol}\nTrigger Type: ${triggerType}\nTrigger Prices: ₹${triggerPrices.join(', ₹')}`;
+        alert(message);
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('sellModal')).hide();
+        
+        // Refresh holdings
+        refreshHoldings();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`Error placing GTT sell order: ${error.message}`);
+    })
+    .finally(() => {
+        const sellButton = document.getElementById('sellExecuteBtn');
+        sellButton.disabled = false;
+        sellButton.innerHTML = '<i class="fas fa-arrow-down"></i> Execute Sell Order';
+    });
 }
 </script>
 {% endblock %}

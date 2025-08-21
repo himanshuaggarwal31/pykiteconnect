@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Results GTT Button Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .test-table {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SQL Results GTT Button Test</h1>
+        
+        <div class="test-table">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>SYMBOL</th>
+                        <th>COMPANY_NAME</th>
+                        <th>NIFTY_RANK</th>
+                        <th>CLOSE_PRICE</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>INFY</td>
+                        <td>Infosys Limited</td>
+                        <td>50</td>
+                        <td>1500</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-success btn-add-buy-gtt" title="Add Buy GTT"
+                                    data-symbol="INFY" 
+                                    data-company-name="Infosys Limited" 
+                                    data-nifty-rank="50"
+                                    data-price="1500">
+                                    <i class="fas fa-plus"></i> Buy
+                                </button>
+                                <button class="btn btn-danger btn-add-sell-gtt" title="Add Sell GTT"
+                                    data-symbol="INFY" 
+                                    data-company-name="Infosys Limited" 
+                                    data-nifty-rank="50"
+                                    data-price="1500">
+                                    <i class="fas fa-plus"></i> Sell
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- GTT Order Modal -->
+        <div class="modal fade" id="gttOrderModal" tabindex="-1" aria-labelledby="gttOrderModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="gttOrderModalLabel">Create GTT Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="gttOrderForm">
+                            <input type="hidden" id="orderSymbol" name="symbol">
+                            <input type="hidden" id="orderCompanyName" name="company_name">
+                            <input type="hidden" id="orderNiftyRank" name="nifty_rank">
+                            <input type="hidden" id="orderType" name="order_type">
+                            <input type="hidden" id="orderTriggerType" name="trigger_type">
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="orderSymbolDisplay" class="form-label">Symbol</label>
+                                    <input type="text" class="form-control" id="orderSymbolDisplay" disabled>
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="orderCompanyNameDisplay" class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" id="orderCompanyNameDisplay" disabled>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="orderLastPrice" class="form-label">Last Price</label>
+                                    <input type="number" class="form-control" id="orderLastPrice" name="last_price" step="0.01" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="orderTriggerPrice" class="form-label">Trigger Price</label>
+                                    <input type="number" class="form-control" id="orderTriggerPrice" name="trigger_price" step="0.01" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="orderTargetPrice" class="form-label">Target Price</label>
+                                    <input type="number" class="form-control" id="orderTargetPrice" name="target_price" step="0.01">
+                                </div>
+                            </div>
+                            
+                            <div id="twoLegFields" style="display: none;">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="orderStopLoss" class="form-label">Stop Loss Price</label>
+                                        <input type="number" class="form-control" id="orderStopLoss" name="stop_loss" step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="orderQuantity" class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="orderQuantity" name="quantity" min="1" value="0" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <label for="orderNotes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="orderNotes" name="notes" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="saveGttOrderBtn">Save Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sell Type Modal -->
+        <div class="modal fade" id="sellTypeModal" tabindex="-1" aria-labelledby="sellTypeModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="sellTypeModalLabel">Select Sell Order Type</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-4">Select the type of sell order you want to create for <strong id="sellSymbolDisplay"></strong>:</p>
+                        <div class="d-grid gap-3">
+                            <button class="btn btn-lg btn-outline-danger" id="singleLegSellBtn">
+                                <i class="fas fa-arrow-up me-2"></i>
+                                <strong>Single-Leg Sell</strong>
+                                <div class="small text-muted mt-1">Create a simple GTT order to sell at a specified trigger price</div>
+                            </button>
+                            <button class="btn btn-lg btn-outline-danger" id="twoLegSellBtn">
+                                <i class="fas fa-exchange-alt me-2"></i>
+                                <strong>Two-Leg Sell</strong>
+                                <div class="small text-muted mt-1">Create a GTT with target price and stop loss</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Simple test implementation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle buy button
+            document.querySelector('.btn-add-buy-gtt').addEventListener('click', function() {
+                const symbol = this.getAttribute('data-symbol');
+                const companyName = this.getAttribute('data-company-name');
+                const niftyRank = this.getAttribute('data-nifty-rank');
+                const lastPrice = parseFloat(this.getAttribute('data-price'));
+                
+                showCreateModal(symbol, companyName, niftyRank, 'BUY', 'single', lastPrice);
+            });
+            
+            // Handle sell button
+            document.querySelector('.btn-add-sell-gtt').addEventListener('click', function() {
+                const symbol = this.getAttribute('data-symbol');
+                
+                // Set the symbol in the modal
+                document.getElementById('sellSymbolDisplay').textContent = symbol;
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('sellTypeModal'));
+                modal.show();
+            });
+            
+            // Single-leg sell button
+            document.getElementById('singleLegSellBtn').addEventListener('click', function() {
+                const symbol = document.getElementById('sellSymbolDisplay').textContent;
+                const modal = bootstrap.Modal.getInstance(document.getElementById('sellTypeModal'));
+                modal.hide();
+                
+                const sellBtn = document.querySelector(`.btn-add-sell-gtt[data-symbol="${symbol}"]`);
+                const companyName = sellBtn.getAttribute('data-company-name');
+                const niftyRank = sellBtn.getAttribute('data-nifty-rank');
+                const lastPrice = parseFloat(sellBtn.getAttribute('data-price'));
+                
+                showCreateModal(symbol, companyName, niftyRank, 'SELL', 'single', lastPrice);
+            });
+            
+            // Two-leg sell button
+            document.getElementById('twoLegSellBtn').addEventListener('click', function() {
+                const symbol = document.getElementById('sellSymbolDisplay').textContent;
+                const modal = bootstrap.Modal.getInstance(document.getElementById('sellTypeModal'));
+                modal.hide();
+                
+                const sellBtn = document.querySelector(`.btn-add-sell-gtt[data-symbol="${symbol}"]`);
+                const companyName = sellBtn.getAttribute('data-company-name');
+                const niftyRank = sellBtn.getAttribute('data-nifty-rank');
+                const lastPrice = parseFloat(sellBtn.getAttribute('data-price'));
+                
+                showCreateModal(symbol, companyName, niftyRank, 'SELL', 'two-leg', lastPrice);
+            });
+            
+            // Save GTT order button
+            document.getElementById('saveGttOrderBtn').addEventListener('click', function() {
+                alert('This is a test page. In the real app, this would save the order.');
+            });
+        });
+        
+        function showCreateModal(symbol, companyName, niftyRank, orderType, triggerType, lastPrice) {
+            // Set up the modal with the provided values
+            document.getElementById('orderSymbol').value = symbol;
+            document.getElementById('orderCompanyName').value = companyName;
+            document.getElementById('orderNiftyRank').value = niftyRank;
+            document.getElementById('orderType').value = orderType;
+            document.getElementById('orderTriggerType').value = triggerType;
+            
+            // Update display fields
+            document.getElementById('orderSymbolDisplay').value = symbol;
+            document.getElementById('orderCompanyNameDisplay').value = companyName;
+            
+            // Set the last price
+            document.getElementById('orderLastPrice').value = lastPrice.toFixed(2);
+            
+            // Calculate suggested trigger price based on order type
+            let triggerPrice;
+            let targetPrice;
+            
+            if (orderType === 'BUY') {
+                triggerPrice = (lastPrice * 0.9).toFixed(2);
+                targetPrice = (lastPrice * 1.3).toFixed(2);
+                document.getElementById('twoLegFields').style.display = 'none';
+            } else { // SELL
+                if (triggerType === 'single') {
+                    triggerPrice = (lastPrice * 1.1).toFixed(2);
+                    targetPrice = '';
+                    document.getElementById('twoLegFields').style.display = 'none';
+                } else { // two-leg
+                    targetPrice = (lastPrice * 1.1).toFixed(2);
+                    triggerPrice = '';
+                    document.getElementById('orderStopLoss').value = (lastPrice * 0.9).toFixed(2);
+                    document.getElementById('twoLegFields').style.display = 'block';
+                }
+            }
+            
+            document.getElementById('orderTriggerPrice').value = triggerPrice;
+            document.getElementById('orderTargetPrice').value = targetPrice;
+            
+            // Update modal title
+            const action = orderType === 'BUY' ? 'Buy' : 'Sell';
+            document.getElementById('gttOrderModalLabel').textContent = `Add ${action} GTT Order for ${symbol}`;
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('gttOrderModal'));
+            modal.show();
+        }
+    </script>
+</body>
+</html>

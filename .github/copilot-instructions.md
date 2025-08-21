@@ -1,6 +1,8 @@
 # Copilot Instructions
+This file provides guidelines for GitHub Copilot to follow when generating code for this project.
 
 ## 🧠 General Behavior
+- Files inside C:\Himanshu\REPOS\pykiteconnect\gtt_webapp not to be modified by Copilot. 
 - Follow instructions exactly as written in comments or prompts.
 - Do not assume missing details — ask or leave TODOs if unsure.
 - Prioritize simplicity, clarity, and readability of code.

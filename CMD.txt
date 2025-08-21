@@ -28,7 +28,30 @@ python .\run.py
 ****************************************
 .\venv\Scripts\Activate.ps1
 python .\app\AutoConnect.py
+
+.\venv\Scripts\Activate.ps1
 python .\gtt_webapp\run.py
+
+
+.\venv\Scripts\python.exe .\gtt_webapp\run.py
+
+
+
+git clean -fd ; git restore .
+
+
+----------
+
+git add .  
+git commit -m "minor enhancements on custom addneworder save button"     
+git push   
+
+
 
 git pull origin
 git checkout feature/holding_sell_action
+
+
+.\venv\Scripts\Activate.ps1
+python .\app\AutoConnect.py
+python .\gtt_webapp\run.py

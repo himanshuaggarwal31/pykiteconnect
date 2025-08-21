@@ -26,6 +26,9 @@
                 <button type="button" class="btn btn-success" id="placeAllOrdersBtn">
                     <i class="fas fa-rocket me-1"></i>Place Selected Orders
                 </button>
+                <button type="button" class="btn btn-danger" id="deleteSelectedOrdersBtn">
+                    <i class="fas fa-trash me-1"></i>Delete Selected Orders
+                </button>
             </div>
             
             <!-- Admin/Debug Tools Dropdown -->
@@ -73,6 +76,36 @@
                 <input type="text" class="form-control" id="searchInput" placeholder="Search symbol...">
             </div>
             
+            <!-- Advanced Search -->
+            <div class="input-group input-group-sm search-input-group">
+                <span class="input-group-text">
+                    <i class="fas fa-filter"></i>
+                </span>
+                <input type="text" class="form-control" id="advancedSearchInput" 
+                       placeholder="e.g. QTY > 10 AND PCT_CHG > 5">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                        data-bs-toggle="dropdown" aria-expanded="false" id="savedFiltersBtn">
+                    <i class="fas fa-bookmark"></i>
+                </button>
+                <ul class="dropdown-menu" id="savedFiltersMenu">
+                    <li><h6 class="dropdown-header">Saved Filters</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="saveCurrentFilter">
+                        <i class="fas fa-save me-2"></i>Save Current Filter
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" id="manageFilters">
+                        <i class="fas fa-cog me-2"></i>Manage Filters
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li id="noSavedFilters"><span class="dropdown-item-text text-muted">No saved filters</span></li>
+                </ul>
+                <button class="btn btn-outline-secondary" type="button" id="advancedSearchHelp" 
+                        data-bs-toggle="tooltip" data-bs-placement="top" 
+                        title="Supported: SYMBOL, QTY, AMOUNT, TRIGGER_PRICE, LAST_PRICE, RANK, PCT_CHG. Operators: >, <, >=, <=, =, !=. Logic: AND, OR">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+            </div>
+            
             <!-- Order Type filter -->
             <select class="form-select form-select-sm compact-select" id="orderTypeFilter">
                 <option value="">All Order Types</option>
@@ -96,6 +129,12 @@
                 <option value="100">100</option>
                 <option value="-1" selected>All</option>
             </select>
+            
+            <!-- Reset filters button -->
+            <button class="btn btn-outline-danger btn-sm" type="button" id="resetFiltersBtn" 
+                    title="Clear all filters and reset to default view">
+                <i class="fas fa-undo"></i> Reset
+            </button>
         </div>
     </div>
 
@@ -132,7 +171,7 @@
                             Company <i class="fas fa-sort sort-icon"></i>
                         </th>
                         <th class="sortable" data-column="exchange">
-                            Exchange <i class="fas fa-sort sort-icon"></i>
+                            Exch <i class="fas fa-sort sort-icon"></i>
                         </th>
                         <th class="sortable" data-column="order_type">
                             Type <i class="fas fa-sort sort-icon"></i>
@@ -143,18 +182,21 @@
                         <th class="sortable" data-column="last_price">
                             Last Price <i class="fas fa-sort sort-icon"></i>
                         </th>
+                        <th class="sortable percentage-change-column" data-column="percentage_change">
+                            % Chg <i class="fas fa-sort sort-icon"></i>
+                        </th>
                         <th class="sortable" data-column="quantity">
-                            Quantity <i class="fas fa-sort sort-icon"></i>
+                            Qty <i class="fas fa-sort sort-icon"></i>
                         </th>
                         <th class="sortable" data-column="amount">
                             Amount <i class="fas fa-sort sort-icon"></i>
                         </th>
                         <th class="sortable" data-column="nifty_rank">
-                            Nifty Rank <i class="fas fa-sort sort-icon"></i>
+                            Rank <i class="fas fa-sort sort-icon"></i>
                         </th>
                         <th>Notes</th>
                         <th class="sortable" data-column="placed_on_kite">
-                            Kite Status <i class="fas fa-sort sort-icon"></i>
+                            St <i class="fas fa-sort sort-icon"></i>
                         </th>
                         <th>Actions</th>
                     </tr>
@@ -186,62 +228,67 @@
 <div class="modal fade" id="orderModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header py-2">
                 <h5 class="modal-title" id="orderModalTitle">Add New Order</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary btn-sm" id="saveOrderBtnTop" onclick="saveOrder()">
+                        <i class="fas fa-save me-1"></i>Save
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
             </div>
-            <div class="modal-body">
+            <div class="modal-body py-3">
                 <form id="orderForm">
                     <input type="hidden" id="orderId" name="id">
                     
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="symbol" class="form-label">Trading Symbol</label>
-                                <input type="text" class="form-control" id="symbol" name="symbol" required>
+                                <input type="text" class="form-control form-control-sm" id="symbol" name="symbol" required>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="companyName" class="form-label">Company Name</label>
-                                <input type="text" class="form-control" id="companyName" name="company_name">
+                                <input type="text" class="form-control form-control-sm" id="companyName" name="company_name">
                             </div>
-                            <div class="mb-3">
-                                <label for="exchange" class="form-label">Exchange</label>
-                                <select class="form-select" id="exchange" name="exchange" required>
-                                    <option value="NSE">NSE</option>
-                                    <option value="BSE">BSE</option>
-                                </select>
+                            
+                            <!-- Exchange, Order Type, and Nifty Rank in one row -->
+                            <div class="row mb-2">
+                                <div class="col-4">
+                                    <label for="exchange" class="form-label">Exchange</label>
+                                    <select class="form-select form-select-sm" id="exchange" name="exchange" required>
+                                        <option value="NSE">NSE</option>
+                                        <option value="BSE">BSE</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label for="orderType" class="form-label">Order Type</label>
+                                    <select class="form-select form-select-sm" id="orderType" name="order_type" required>
+                                        <option value="BUY">BUY</option>
+                                        <option value="SELL">SELL</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label for="niftyRank" class="form-label">Nifty Rank</label>
+                                    <input type="number" class="form-control form-control-sm" id="niftyRank" name="nifty_rank" min="0" placeholder="Optional">
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label for="orderType" class="form-label">Order Type</label>
-                                <select class="form-select" id="orderType" name="order_type" required>
-                                    <option value="BUY">BUY</option>
-                                    <option value="SELL">SELL</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
+                            
+                            <div class="mb-2">
                                 <label for="triggerType" class="form-label">Trigger Type</label>
-                                <select class="form-select" id="triggerType" name="trigger_type" required>
+                                <select class="form-select form-select-sm" id="triggerType" name="trigger_type" required>
                                     <option value="single">Single (One Price Point)</option>
                                     <option value="two-leg">Two-Leg (Target & Stop Loss)</option>
                                 </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="niftyRank" class="form-label">Nifty Rank</label>
-                                <input type="number" class="form-control" id="niftyRank" name="nifty_rank" min="0" placeholder="Optional">
-                                <small class="form-text text-muted">
-                                    Stock's rank in Nifty, if applicable. 
-                                </small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <!-- Single trigger fields -->
                             <div id="singleTriggerFields">
-                                <div class="mb-3">
+                                <div class="mb-2">
                                     <label for="triggerPrice" class="form-label">Trigger Price</label>
-                                    <input type="number" step="0.01" class="form-control" id="triggerPrice" name="trigger_price">
-                                    <small class="form-text text-muted">
-                                        For BUY: Set below market price. For SELL: Set above market price.
-                                    </small>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" id="triggerPrice" name="trigger_price">
+                                    <small class="form-text text-muted">For BUY: Set below market price. For SELL: Set above market price.</small>
                                 </div>
                             </div>
                             
@@ -249,38 +296,39 @@
                             <div id="twoLegTriggerFields" style="display:none;">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <div class="mb-3">
+                                        <div class="mb-2">
                                             <label for="targetPrice" class="form-label">Target Price</label>
-                                            <input type="number" step="0.01" class="form-control" id="targetPrice" name="target_price">
+                                            <input type="number" step="0.01" class="form-control form-control-sm" id="targetPrice" name="target_price">
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="mb-3">
+                                        <div class="mb-2">
                                             <label for="stopLoss" class="form-label">Stop Loss</label>
-                                            <input type="number" step="0.01" class="form-control" id="stopLoss" name="stop_loss">
+                                            <input type="number" step="0.01" class="form-control form-control-sm" id="stopLoss" name="stop_loss">
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label for="lastPrice" class="form-label">Last Price</label>
-                                <div class="input-group">
-                                    <input type="number" step="0.01" class="form-control" id="lastPrice" name="last_price">
-                                    <button class="btn btn-outline-secondary" type="button" id="fetchPriceBtn">
-                                        <i class="fas fa-sync-alt"></i> Fetch
-                                    </button>
+                            <div class="row mb-2">
+                                <div class="col-8">
+                                    <label for="lastPrice" class="form-label">Last Price</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="0.01" class="form-control" id="lastPrice" name="last_price">
+                                        <button class="btn btn-outline-secondary" type="button" id="fetchPriceBtn">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <label for="quantity" class="form-label">Quantity</label>
+                                    <input type="number" class="form-control form-control-sm" id="quantity" name="quantity" required>
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label for="quantity" class="form-label">Quantity</label>
-                                <input type="number" class="form-control" id="quantity" name="quantity" required>
-                            </div>
-                            
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="orderAmount" class="form-label">Total Amount</label>
-                                <div class="input-group">
+                                <div class="input-group input-group-sm">
                                     <span class="input-group-text">₹</span>
                                     <span class="form-control" id="orderAmount">0.00</span>
                                 </div>
@@ -288,19 +336,21 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row mt-3">
+                    <div class="row mt-2">
                         <div class="col-12">
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 <label for="notes" class="form-label">Notes</label>
-                                <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                                <textarea class="form-control form-control-sm" id="notes" name="notes" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveOrderBtn" onclick="saveOrder()">Save Order</button>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="saveOrderBtn" onclick="saveOrder()">
+                    <i class="fas fa-save me-1"></i>Save Order
+                </button>
             </div>
         </div>
     </div>
@@ -1354,5 +1404,85 @@ document.addEventListener('DOMContentLoaded', function() {
     setupPriceValidation();
 });
 </script>
+
+<!-- Save Filter Modal -->
+<div class="modal fade" id="saveFilterModal" tabindex="-1" aria-labelledby="saveFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveFilterModalLabel">Save Advanced Search Filter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="saveFilterForm">
+                    <div class="mb-3">
+                        <label for="filterName" class="form-label">Filter Name *</label>
+                        <input type="text" class="form-control" id="filterName" required 
+                               placeholder="e.g. High Quantity Orders">
+                    </div>
+                    <div class="mb-3">
+                        <label for="filterQuery" class="form-label">Filter Query *</label>
+                        <textarea class="form-control" id="filterQuery" rows="2" required readonly></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filterDescription" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="filterDescription" rows="2" 
+                                  placeholder="Brief description of what this filter does"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSaveFilter">Save Filter</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Filters Modal -->
+<div class="modal fade" id="manageFiltersModal" tabindex="-1" aria-labelledby="manageFiltersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageFiltersModalLabel">Manage Saved Filters</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" id="exportFilters">
+                            <i class="fas fa-download me-1"></i>Export
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="importFilters">
+                            <i class="fas fa-upload me-1"></i>Import
+                        </button>
+                    </div>
+                    <input type="file" id="importFiltersFile" accept=".json" style="display: none;">
+                </div>
+                <div id="filtersTableContainer">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Query</th>
+                                <th>Used</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="filtersTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Loading filters...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="{{ url_for('static', filename='js/custom-gtt.js') }}"></script>
 {% endblock %}

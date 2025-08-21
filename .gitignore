@@ -8,7 +8,12 @@ app/api_key.txt
 app/access_token.txt
 app/request_token.txt
 .env
+
+# SQL Results cache directory
+gtt_webapp/sql_results_cache/
+*.csv
 app/.env
+logs/
 
 ### Linux ###
 *~

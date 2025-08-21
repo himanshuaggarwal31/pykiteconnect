@@ -3,6 +3,19 @@
  * Handles saving, editing, and placing GTT orders
  */
 
+// Debounce function for search input
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // Global error handler to catch any unexpected JavaScript errors
 window.addEventListener('error', function(event) {
     console.error('Global JavaScript error caught:', {
@@ -26,6 +39,45 @@ window.addEventListener('unhandledrejection', function(event) {
     // Prevent the error from showing in the console as uncaught
     event.preventDefault();
 });
+
+/**
+ * Calculate percentage change between trigger price and last price
+ * @param {number|string} triggerPrice - The trigger price
+ * @param {number|string} lastPrice - The last/current price
+ * @returns {string} - Formatted percentage change or 'N/A'
+ */
+function calculatePercentageChange(triggerPrice, lastPrice) {
+    if (!triggerPrice || !lastPrice || triggerPrice === 0 || lastPrice === 0) {
+        return 'N/A';
+    }
+    
+    const trigger = parseFloat(triggerPrice);
+    const last = parseFloat(lastPrice);
+    
+    if (isNaN(trigger) || isNaN(last)) {
+        return 'N/A';
+    }
+    
+    const percentChange = ((last - trigger) / trigger) * 100;
+    return percentChange.toFixed(2);
+}
+
+/**
+ * Format percentage change with appropriate styling
+ * @param {string} percentChange - The percentage change value
+ * @returns {string} - HTML formatted percentage change
+ */
+function formatPercentageChange(percentChange) {
+    if (percentChange === 'N/A') {
+        return '<span class="text-muted">N/A</span>';
+    }
+    
+    const value = parseFloat(percentChange);
+    const color = value >= 0 ? 'text-success' : 'text-danger';
+    const sign = value >= 0 ? '+' : '';
+    
+    return `<span class="${color}">${sign}${percentChange}%</span>`;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOMContentLoaded fired - Starting initialization');
@@ -73,6 +125,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        // Add special event listener for quantity field to track manual changes
+        const quantityElement = document.getElementById('quantity');
+        if (quantityElement) {
+            quantityElement.addEventListener('input', function() {
+                // Mark as manually set when user changes it
+                if (this.value !== '') {
+                    this.dataset.manuallySet = 'true';
+                    console.log('Quantity manually set to:', this.value);
+                }
+            });
+        }
+        
         // Add event listener for trigger type change to toggle fields
         const triggerTypeElement = document.getElementById('triggerType');
         if (triggerTypeElement) {
@@ -118,6 +182,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Store fetchTableData globally for debugging
             window.debugFetchTableData = fetchTableData;
+            
+            // Try to restore saved table state from previous session
+            setTimeout(() => {
+                const savedState = restoreTableState();
+                if (savedState) {
+                    console.log('🔄 Restored table state:', savedState);
+                    // Load table data with restored state
+                    loadTableData();
+                } else {
+                    console.log('ℹ️ No saved state found, using default state');
+                }
+            }, 100);
             
         } catch (error) {
             console.error('❌ Search initialization failed:', error);
@@ -175,6 +251,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 console.log(`✅ Added change listener to ${id}`);
             }
+        });
+        
+        // Initialize advanced search handler
+        const advancedSearchInput = document.getElementById('advancedSearchInput');
+        if (advancedSearchInput) {
+            advancedSearchInput.addEventListener('input', debounce(() => {
+                loadTableData();
+            }, 500));
+            console.log('✅ Initialized advanced search input');
+        }
+        
+        // Initialize reset filters button
+        const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+        if (resetFiltersBtn) {
+            resetFiltersBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all filters and sorting?')) {
+                    resetTableToDefault();
+                }
+            });
+            console.log('✅ Initialized reset filters button');
+        }
+        
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
         });
         
         // Initialize pagination buttons
@@ -244,6 +346,26 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Initialized place all orders button');
         }
         
+        const deleteSelectedOrdersBtn = document.getElementById('deleteSelectedOrdersBtn');
+        if (deleteSelectedOrdersBtn) {
+            deleteSelectedOrdersBtn.addEventListener('click', () => {
+                const selectedOrders = getSelectedOrders();
+                if (selectedOrders.length === 0) {
+                    showToast('Please select at least one order to delete', 'warning');
+                    return;
+                }
+                
+                showConfirmationModal(
+                    'Delete Selected Orders',
+                    `Are you sure you want to delete ${selectedOrders.length} selected order(s)? This action cannot be undone.`,
+                    () => {
+                        deleteMultipleOrders(selectedOrders);
+                    }
+                );
+            });
+            console.log('✅ Initialized delete selected orders button');
+        }
+        
         // Initialize sorting functionality
         initializeSorting();
         
@@ -257,6 +379,111 @@ document.addEventListener('DOMContentLoaded', function() {
 // Global variables for sorting
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
+
+/**
+ * Save current table state (filters, search, sorting, pagination)
+ */
+function saveTableState() {
+    const state = {
+        search: document.getElementById('searchInput')?.value || '',
+        advancedSearch: document.getElementById('advancedSearchInput')?.value || '',
+        orderType: document.getElementById('orderTypeFilter')?.value || '',
+        kiteStatus: document.getElementById('kiteStatusFilter')?.value || '',
+        recordsPerPage: document.getElementById('recordsPerPage')?.value || '-1',
+        sortColumn: currentSortColumn,
+        sortDirection: currentSortDirection,
+        currentPage: parseInt(document.getElementById('currentPage')?.textContent || '1')
+    };
+    
+    // Store in sessionStorage so it persists during the session
+    sessionStorage.setItem('gttTableState', JSON.stringify(state));
+    return state;
+}
+
+/**
+ * Restore table state from saved state
+ */
+function restoreTableState() {
+    try {
+        const savedState = sessionStorage.getItem('gttTableState');
+        if (!savedState) return null;
+        
+        const state = JSON.parse(savedState);
+        
+        // Restore form values
+        const searchInput = document.getElementById('searchInput');
+        const advancedSearchInput = document.getElementById('advancedSearchInput');
+        const orderTypeFilter = document.getElementById('orderTypeFilter');
+        const kiteStatusFilter = document.getElementById('kiteStatusFilter');
+        const recordsPerPage = document.getElementById('recordsPerPage');
+        
+        if (searchInput && state.search) searchInput.value = state.search;
+        if (advancedSearchInput && state.advancedSearch) advancedSearchInput.value = state.advancedSearch;
+        if (orderTypeFilter && state.orderType) orderTypeFilter.value = state.orderType;
+        if (kiteStatusFilter && state.kiteStatus) kiteStatusFilter.value = state.kiteStatus;
+        if (recordsPerPage && state.recordsPerPage) recordsPerPage.value = state.recordsPerPage;
+        
+        // Restore sorting
+        currentSortColumn = state.sortColumn;
+        currentSortDirection = state.sortDirection;
+        
+        return state;
+    } catch (error) {
+        console.error('Error restoring table state:', error);
+        return null;
+    }
+}
+
+/**
+ * Refresh table data while preserving current state
+ */
+function refreshTableWithState() {
+    // Save current state before refresh
+    const currentState = saveTableState();
+    
+    // Load table data which will use the saved state
+    loadTableData();
+    
+    console.log('Table refreshed with preserved state:', currentState);
+}
+
+/**
+ * Clear saved table state (use when user explicitly wants to reset)
+ */
+function clearTableState() {
+    sessionStorage.removeItem('gttTableState');
+    console.log('Table state cleared');
+}
+
+/**
+ * Reset table to default state and clear all filters
+ */
+function resetTableToDefault() {
+    // Clear saved state
+    clearTableState();
+    
+    // Reset all form inputs
+    const searchInput = document.getElementById('searchInput');
+    const advancedSearchInput = document.getElementById('advancedSearchInput');
+    const orderTypeFilter = document.getElementById('orderTypeFilter');
+    const kiteStatusFilter = document.getElementById('kiteStatusFilter');
+    const recordsPerPage = document.getElementById('recordsPerPage');
+    
+    if (searchInput) searchInput.value = '';
+    if (advancedSearchInput) advancedSearchInput.value = '';
+    if (orderTypeFilter) orderTypeFilter.value = '';
+    if (kiteStatusFilter) kiteStatusFilter.value = '';
+    if (recordsPerPage) recordsPerPage.value = '-1';
+    
+    // Reset sorting
+    currentSortColumn = null;
+    currentSortDirection = 'asc';
+    
+    // Reload table with default state
+    loadTableData();
+    
+    console.log('Table reset to default state');
+}
 
 /**
  * Updates the orders table with data from the API
@@ -305,7 +532,7 @@ function updateOrdersTable(data) {
         console.log('No records found, showing empty state');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td colspan="13" class="text-center py-3">
+            <td colspan="14" class="text-center py-3">
                 <i class="fas fa-info-circle me-2"></i>No orders found. Add a new order to get started.
             </td>
         `;
@@ -398,14 +625,28 @@ function updateOrdersTable(data) {
             `;
         }
         
+        // Calculate percentage change
+        const triggerPrice = order.trigger_price || (order.trigger_values ? order.trigger_values.split(',')[0] : null);
+        const percentChange = calculatePercentageChange(triggerPrice, order.last_price);
+        const percentChangeFormatted = formatPercentageChange(percentChange);
+
+        // Create TradingView link for symbol
+        const exchange = order.exchange || 'NSE';
+        const symbol = order.symbol || 'N/A';
+        const tradingViewUrl = `https://in.tradingview.com/chart/?symbol=${exchange}:${symbol}`;
+        const symbolWithLink = symbol !== 'N/A' ? 
+            `<a href="#" onclick="openTradingViewPopup('${tradingViewUrl}', '${symbol}'); return false;" class="symbol-link" title="View ${symbol} chart on TradingView">${symbol}</a>` : 
+            symbol;
+
         tr.innerHTML = `
             <td><input type="checkbox" class="order-select" value="${order.id || ''}" ${order.placed_on_kite ? 'disabled' : ''} onchange="handleCheckboxChange()"></td>
-            <td>${order.symbol || 'N/A'}</td>
+            <td>${symbolWithLink}</td>
             <td class="company-column">${order.company_name ? `<span title="${order.company_name}">${order.company_name.length > 25 ? order.company_name.substring(0, 25) + '...' : order.company_name}</span>` : ''}</td>
             <td>${order.exchange || 'NSE'}</td>
             <td>${order.order_type || 'N/A'}</td>
             <td>${triggerValuesDisplay}</td>
             <td>${order.last_price || 'N/A'}</td>
+            <td class="text-center percentage-change-column">${percentChangeFormatted}</td>
             <td>${order.quantity || 0}</td>
             <td class="text-end">${amountDisplay}</td>
             <td class="text-center">${order.nifty_rank ? order.nifty_rank : '<span class="text-muted">-</span>'}</td>
@@ -460,8 +701,10 @@ function navigateToPage(page) {
     const perPageValue = recordsPerPage.value;
     if (perPageValue === '-1' || perPageValue.toLowerCase() === 'all') {
         params.append('per_page', '1000'); // Use a large number to effectively show all records
-    } else {
+    } else if (perPageValue && perPageValue.trim() !== '') {
         params.append('per_page', perPageValue);
+    } else {
+        params.append('per_page', '25'); // Default fallback
     }
 
     if (searchInput.value) {
@@ -535,7 +778,7 @@ function updateTotalAmount() {
     rows.forEach(row => {
         const checkbox = row.querySelector('.order-select');
         if (checkbox && checkbox.checked) {
-            const amountCell = row.cells[8]; // Amount column (0-based index)
+            const amountCell = row.cells[9]; // Amount column (0-based index)
             if (amountCell) {
                 const amount = parseFloat(amountCell.textContent.replace(/[^0-9.-]+/g, '')) || 0;
                 total += amount;
@@ -554,7 +797,7 @@ function updateTotalAllAmount() {
     const rows = document.querySelectorAll('#customGttTableBody tr[data-id]');
     
     rows.forEach(row => {
-        const amountCell = row.cells[8]; // Amount column (0-based index)
+        const amountCell = row.cells[9]; // Amount column (0-based index)
         if (amountCell) {
             const amount = parseFloat(amountCell.textContent.replace(/[^0-9.-]+/g, '')) || 0;
             total += amount;
@@ -762,6 +1005,12 @@ function showOrderModal(orderId = null) {
                 setFieldValue('notes', order.notes);
                 setFieldValue('niftyRank', order.nifty_rank);
                 
+                // Clear the manual flag for quantity to allow auto-calculation
+                const quantityField = document.getElementById('quantity');
+                if (quantityField) {
+                    delete quantityField.dataset.manuallySet;
+                }
+                
                 // Handle trigger type fields
                 const triggerType = order.trigger_type || 'single';
                 toggleTriggerFields(triggerType);
@@ -796,6 +1045,12 @@ function showOrderModal(orderId = null) {
         document.getElementById('exchange').value = 'NSE';
         document.getElementById('orderType').value = 'BUY';
         
+        // Clear the manual flag for quantity to allow auto-calculation for new orders
+        const quantityField = document.getElementById('quantity');
+        if (quantityField) {
+            delete quantityField.dataset.manuallySet;
+        }
+        
         // Show only single trigger fields
         toggleTriggerFields('single');
         
@@ -824,7 +1079,8 @@ function toggleTriggerFields(triggerType) {
  * Update the order amount based on form inputs
  */
 function updateOrderAmount() {
-    const quantity = parseInt(document.getElementById('quantity').value) || 0;
+    const quantityInput = document.getElementById('quantity');
+    let quantity = parseInt(quantityInput.value) || 0;
     const triggerType = document.getElementById('triggerType').value;
     let price = parseFloat(document.getElementById('lastPrice').value) || 0;
     
@@ -832,12 +1088,38 @@ function updateOrderAmount() {
         const triggerPrice = parseFloat(document.getElementById('triggerPrice').value) || 0;
         if (triggerPrice > 0) {
             price = triggerPrice;
+            
+            // Auto-calculate quantity based on ₹30,000 max amount if quantity is 0 or not manually set
+            if (quantity === 0 || !quantityInput.dataset.manuallySet) {
+                const maxAmount = 30000;
+                const calculatedQuantity = Math.floor(maxAmount / triggerPrice);
+                if (calculatedQuantity > 0) {
+                    quantity = calculatedQuantity;
+                    quantityInput.value = quantity;
+                    // Mark as auto-calculated (not manually set)
+                    delete quantityInput.dataset.manuallySet;
+                    console.log(`Auto-calculated quantity: ${quantity} (₹${maxAmount} / ₹${triggerPrice})`);
+                }
+            }
         }
     } else if (triggerType === 'two-leg') {
         // For two-leg, we'll use the stop-loss price for calculation
         const stopLoss = parseFloat(document.getElementById('stopLoss').value) || 0;
         if (stopLoss > 0) {
             price = stopLoss;
+            
+            // Auto-calculate quantity based on ₹30,000 max amount if quantity is 0 or not manually set
+            if (quantity === 0 || !quantityInput.dataset.manuallySet) {
+                const maxAmount = 30000;
+                const calculatedQuantity = Math.floor(maxAmount / stopLoss);
+                if (calculatedQuantity > 0) {
+                    quantity = calculatedQuantity;
+                    quantityInput.value = quantity;
+                    // Mark as auto-calculated (not manually set)
+                    delete quantityInput.dataset.manuallySet;
+                    console.log(`Auto-calculated quantity: ${quantity} (₹${maxAmount} / ₹${stopLoss})`);
+                }
+            }
         }
     }
     
@@ -876,30 +1158,48 @@ function fetchLastPrice() {
     document.getElementById('fetchPriceBtn').disabled = true;
     
     fetch(`/api/custom-gtt/get-latest-price/${symbol}?exchange=${exchange}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Check if it's a 500 error and provide helpful message
+                if (response.status === 500) {
+                    throw new Error('Server error: Kite connection may not be available. Please check your Kite login status.');
+                } else if (response.status === 404) {
+                    throw new Error(`Symbol ${symbol} not found on ${exchange}`);
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            return response.json();
+        })
         .then(data => {
             // Reset button
-            document.getElementById('fetchPriceBtn').innerHTML = 'Fetch';
+            document.getElementById('fetchPriceBtn').innerHTML = '<i class="fas fa-sync-alt"></i> Fetch';
             document.getElementById('fetchPriceBtn').disabled = false;
             
-            if (data.error) {
-                showToast(data.error, 'error');
+            if (data.success === false || data.error) {
+                showToast(data.error || 'Failed to fetch price', 'error');
                 return;
             }
             
-            document.getElementById('lastPrice').value = data.last_price;
-            showToast(`Last price for ${symbol}: ${formatCurrency(data.last_price)}`, 'success');
-            
-            // Update order amount
-            updateOrderAmount();
+            // Handle both response formats
+            const price = data.latest_price || data.last_price;
+            if (price) {
+                document.getElementById('lastPrice').value = price.toFixed(2);
+                showToast(`Latest price for ${symbol}: ₹${price.toFixed(2)}`, 'success');
+                
+                // Update order amount
+                updateOrderAmount();
+            } else {
+                showToast('No price data received', 'warning');
+            }
         })
         .catch(error => {
             // Reset button
-            document.getElementById('fetchPriceBtn').innerHTML = 'Fetch';
+            document.getElementById('fetchPriceBtn').innerHTML = '<i class="fas fa-sync-alt"></i> Fetch';
             document.getElementById('fetchPriceBtn').disabled = false;
             
             console.error('Error fetching price:', error);
-            showToast('Failed to fetch price', 'error');
+            showToast(error.message || 'Failed to fetch price', 'error');
         });
 }
 
@@ -1096,12 +1396,8 @@ function saveOrder() {
             // Show success message
             showToast(orderId ? 'Order updated successfully' : 'Order saved successfully', 'success');
             
-            // Refresh table data
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                const event = new Event('input', { bubbles: true });
-                searchInput.dispatchEvent(event);
-            }
+            // Refresh table data while preserving state
+            refreshTableWithState();
         })
         .catch(error => {
             // Reset button
@@ -1153,12 +1449,8 @@ function deleteOrder(orderId) {
                     
                     showToast('Order deleted successfully', 'success');
                     
-                    // Refresh table data
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput) {
-                        const event = new Event('input', { bubbles: true });
-                        searchInput.dispatchEvent(event);
-                    }
+                    // Refresh table data while preserving state
+                    refreshTableWithState();
                 })
                 .catch(error => {
                     console.error('Error deleting order:', error);
@@ -1201,12 +1493,8 @@ function placeOrder(orderId) {
                     
                     showToast(`Order placed on Kite with trigger ID: ${data.trigger_id}`, 'success');
                     
-                    // Refresh table data
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput) {
-                        const event = new Event('input', { bubbles: true });
-                        searchInput.dispatchEvent(event);
-                    }
+                    // Refresh table data while preserving state
+                    refreshTableWithState();
                 })
                 .catch(error => {
                     // Reset button
@@ -1255,12 +1543,8 @@ function placeMultipleOrders(orderIds) {
             showToast(`Successfully placed ${successCount} orders, ${failedCount} failed`, 
                 failedCount > 0 ? 'warning' : 'success');
             
-            // Refresh table data
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                const event = new Event('input', { bubbles: true });
-                searchInput.dispatchEvent(event);
-            }
+            // Refresh table data while preserving state
+            refreshTableWithState();
         })
         .catch(error => {
             // Reset button
@@ -1269,6 +1553,65 @@ function placeMultipleOrders(orderIds) {
             
             console.error('Error placing multiple orders:', error);
             showToast('Failed to place orders on Kite', 'error');
+        });
+}
+
+/**
+ * Delete multiple orders
+ */
+function deleteMultipleOrders(orderIds) {
+    // Show loading
+    const button = document.getElementById('deleteSelectedOrdersBtn');
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Deleting...';
+    button.disabled = true;
+    
+    fetch('/api/custom-gtt/delete-orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ order_ids: orderIds })
+    })
+        .then(response => response.json())
+        .then(data => {
+            // Reset button
+            button.innerHTML = '<i class="fas fa-trash me-1"></i>Delete Selected Orders';
+            button.disabled = false;
+            
+            if (data.error) {
+                showToast(data.error, 'error');
+                return;
+            }
+            
+            const successCount = data.results?.success?.length || 0;
+            const failedCount = data.results?.failed?.length || 0;
+            
+            showToast(`Successfully deleted ${successCount} orders${failedCount > 0 ? `, ${failedCount} failed` : ''}`, 
+                failedCount > 0 ? 'warning' : 'success');
+            
+            // Refresh table data while preserving state
+            refreshTableWithState();
+            
+            // Clear all checkboxes
+            const selectAllCheckbox = document.getElementById('selectAll');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+            const orderCheckboxes = document.querySelectorAll('.order-select');
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Update selection counter
+            updateSelectedCount();
+        })
+        .catch(error => {
+            // Reset button
+            button.innerHTML = '<i class="fas fa-trash me-1"></i>Delete Selected Orders';
+            button.disabled = false;
+            
+            console.error('Error deleting multiple orders:', error);
+            showToast('Failed to delete orders', 'error');
         });
 }
 
@@ -1292,12 +1635,8 @@ function resetOrder(orderId) {
                     
                     showToast('Order status reset successfully', 'success');
                     
-                    // Refresh table data
-                    const searchInput = document.getElementById('searchInput');
-                    if (searchInput) {
-                        const event = new Event('input', { bubbles: true });
-                        searchInput.dispatchEvent(event);
-                    }
+                    // Refresh table data while preserving state
+                    refreshTableWithState();
                 })
                 .catch(error => {
                     console.error('Error resetting order status:', error);
@@ -1336,6 +1675,12 @@ function sortTable(column) {
     // Update header styling
     updateSortHeaders();
     
+    // Special handling for percentage_change column (client-side sorting)
+    if (column === 'percentage_change') {
+        sortTableClientSide(column);
+        return;
+    }
+    
     // Trigger search with current parameters and sort
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
@@ -1368,6 +1713,46 @@ function updateSortHeaders() {
 }
 
 /**
+ * Sort table client-side for calculated columns like percentage_change
+ */
+function sortTableClientSide(column) {
+    const tbody = document.getElementById('customGttTableBody');
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+    
+    rows.sort((a, b) => {
+        let valueA, valueB;
+        
+        if (column === 'percentage_change') {
+            // Get percentage change values from the 8th column (0-indexed: 7)
+            const cellA = a.cells[7]; // percentage change column
+            const cellB = b.cells[7];
+            
+            if (!cellA || !cellB) return 0;
+            
+            // Extract numeric value from the formatted percentage
+            const textA = cellA.textContent.trim();
+            const textB = cellB.textContent.trim();
+            
+            // Handle cases where there's no percentage (N/A, -, etc.)
+            valueA = parseFloat(textA.replace(/[^\d.-]/g, '')) || 0;
+            valueB = parseFloat(textB.replace(/[^\d.-]/g, '')) || 0;
+        }
+        
+        // Apply sort direction
+        const result = valueA - valueB;
+        return currentSortDirection === 'asc' ? result : -result;
+    });
+    
+    // Clear and re-append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    console.log(`Client-side sorted by ${column} (${currentSortDirection})`);
+}
+
+/**
  * Load table data with current filters and sorting
  */
 function loadTableData() {
@@ -1375,9 +1760,15 @@ function loadTableData() {
     const kiteStatusFilter = document.getElementById('kiteStatusFilter');
     const recordsPerPage = document.getElementById('recordsPerPage');
     const searchInput = document.getElementById('searchInput');
+    const advancedSearchInput = document.getElementById('advancedSearchInput');
+    
+    // Check if we need to restore state
+    const savedState = restoreTableState();
+    const currentPageEl = document.getElementById('currentPage');
+    const currentPage = savedState?.currentPage || parseInt(currentPageEl?.textContent || '1');
     
     const params = new URLSearchParams({
-        page: 1
+        page: currentPage
     });
     
     // Handle the per_page parameter correctly
@@ -1385,8 +1776,10 @@ function loadTableData() {
         const perPageValue = recordsPerPage.value;
         if (perPageValue === '-1' || perPageValue.toLowerCase() === 'all') {
             params.append('per_page', '1000'); // Use a large number to effectively show all records
-        } else {
+        } else if (perPageValue && perPageValue.trim() !== '') {
             params.append('per_page', perPageValue);
+        } else {
+            params.append('per_page', '25'); // Default fallback
         }
     } else {
         params.append('per_page', '25'); // Default if no selector found
@@ -1394,6 +1787,10 @@ function loadTableData() {
 
     if (searchInput && searchInput.value) {
         params.append('search', searchInput.value);
+    }
+    
+    if (advancedSearchInput && advancedSearchInput.value) {
+        params.append('advanced_search', advancedSearchInput.value);
     }
     
     if (orderTypeFilter && orderTypeFilter.value) {
@@ -1411,18 +1808,35 @@ function loadTableData() {
     }
     
     fetch(`/api/custom-gtt/orders?${params.toString()}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Handle different HTTP error statuses
+                if (response.status === 500) {
+                    throw new Error('Server error: Database or application issue. Please try again later.');
+                } else if (response.status === 404) {
+                    throw new Error('API endpoint not found. Please check the application configuration.');
+                } else if (response.status === 403) {
+                    throw new Error('Access denied. Please check your authentication.');
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.error) {
-                showToast(data.error, 'error');
+            if (data.success === false || data.error) {
+                showToast(data.error || 'Failed to load orders', 'error');
                 return;
             }
             
             updateOrdersTable(data);
+            
+            // Update sort headers to reflect current state
+            updateSortHeaders();
         })
         .catch(error => {
             console.error('Error loading table data:', error);
-            showToast('Failed to load data', 'error');
+            showToast(`Failed to load data: ${error.message}`, 'error');
         });
 }
 
@@ -1799,6 +2213,424 @@ function removeGridLayout() {
     }
 }
 
+/**
+ * Open TradingView chart in a popup window
+ */
+function openTradingViewPopup(url, symbol) {
+    // Popup window specifications - increased size for better chart viewing
+    const popupWidth = 1700;
+    const popupHeight = 900;
+    
+    // Calculate center position
+    const left = (screen.width - popupWidth) / 2;
+    const top = (screen.height - popupHeight) / 2;
+    
+    // Popup features
+    const features = [
+        `width=${popupWidth}`,
+        `height=${popupHeight}`,
+        `left=${left}`,
+        `top=${top}`,
+        'resizable=yes',
+        'scrollbars=yes',
+        'toolbar=no',
+        'menubar=no',
+        'location=no',
+        'status=no'
+    ].join(',');
+    
+    // Open popup
+    const popup = window.open(url, `tradingview_${symbol}`, features);
+    
+    // Focus the popup window if it opened successfully
+    if (popup) {
+        popup.focus();
+    } else {
+        // Fallback if popup was blocked
+        alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
+        window.open(url, '_blank');
+    }
+}
+
+// Saved Filters Management
+class SavedFiltersManager {
+    constructor() {
+        this.savedFilters = [];
+        this.initializeEventListeners();
+        this.loadSavedFilters();
+    }
+
+    initializeEventListeners() {
+        // Save current filter button
+        const saveCurrentFilterBtn = document.getElementById('saveCurrentFilter');
+        if (saveCurrentFilterBtn) {
+            saveCurrentFilterBtn.addEventListener('click', () => {
+                this.showSaveFilterModal();
+            });
+        }
+
+        // Manage filters button
+        const manageFiltersBtn = document.getElementById('manageFilters');
+        if (manageFiltersBtn) {
+            manageFiltersBtn.addEventListener('click', () => {
+                this.showManageFiltersModal();
+            });
+        }
+
+        // Save filter confirmation
+        const confirmSaveFilterBtn = document.getElementById('confirmSaveFilter');
+        if (confirmSaveFilterBtn) {
+            confirmSaveFilterBtn.addEventListener('click', () => {
+                this.saveFilter();
+            });
+        }
+
+        // Export filters
+        const exportFiltersBtn = document.getElementById('exportFilters');
+        if (exportFiltersBtn) {
+            exportFiltersBtn.addEventListener('click', () => {
+                this.exportFilters();
+            });
+        }
+
+        // Import filters
+        const importFiltersBtn = document.getElementById('importFilters');
+        if (importFiltersBtn) {
+            importFiltersBtn.addEventListener('click', () => {
+                document.getElementById('importFiltersFile').click();
+            });
+        }
+
+        // Import file change
+        const importFileInput = document.getElementById('importFiltersFile');
+        if (importFileInput) {
+            importFileInput.addEventListener('change', (e) => {
+                this.importFilters(e.target.files[0]);
+            });
+        }
+    }
+
+    async loadSavedFilters() {
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.savedFilters = data.filters;
+                this.updateSavedFiltersMenu();
+            } else {
+                console.error('Failed to load saved filters:', data.error);
+            }
+        } catch (error) {
+            console.error('Error loading saved filters:', error);
+        }
+    }
+
+    updateSavedFiltersMenu() {
+        const menu = document.getElementById('savedFiltersMenu');
+        if (!menu) return;
+
+        // Remove existing filter items
+        const existingItems = menu.querySelectorAll('.saved-filter-item');
+        existingItems.forEach(item => item.remove());
+
+        const noFiltersItem = document.getElementById('noSavedFilters');
+        
+        if (this.savedFilters.length === 0) {
+            if (noFiltersItem) {
+                noFiltersItem.style.display = 'block';
+            }
+        } else {
+            if (noFiltersItem) {
+                noFiltersItem.style.display = 'none';
+            }
+
+            // Add saved filters
+            this.savedFilters.forEach(filter => {
+                const listItem = document.createElement('li');
+                listItem.className = 'saved-filter-item';
+                
+                const link = document.createElement('a');
+                link.className = 'dropdown-item d-flex justify-content-between align-items-center';
+                link.href = '#';
+                
+                const filterInfo = document.createElement('div');
+                filterInfo.innerHTML = `
+                    <strong>${filter.name}</strong><br>
+                    <small class="text-muted">${filter.query}</small>
+                `;
+                
+                const usageInfo = document.createElement('small');
+                usageInfo.className = 'text-muted';
+                usageInfo.textContent = `Used ${filter.usage_count || 0} times`;
+                
+                link.appendChild(filterInfo);
+                link.appendChild(usageInfo);
+                
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.applyFilter(filter);
+                });
+                
+                listItem.appendChild(link);
+                menu.appendChild(listItem);
+            });
+        }
+    }
+
+    showSaveFilterModal() {
+        const advancedSearchInput = document.getElementById('advancedSearchInput');
+        const query = advancedSearchInput ? advancedSearchInput.value.trim() : '';
+        
+        if (!query) {
+            showToast('Please enter an advanced search query first', 'warning');
+            return;
+        }
+
+        // Populate the modal
+        const filterQueryTextarea = document.getElementById('filterQuery');
+        if (filterQueryTextarea) {
+            filterQueryTextarea.value = query;
+        }
+
+        // Clear previous values
+        const filterNameInput = document.getElementById('filterName');
+        const filterDescriptionTextarea = document.getElementById('filterDescription');
+        if (filterNameInput) filterNameInput.value = '';
+        if (filterDescriptionTextarea) filterDescriptionTextarea.value = '';
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('saveFilterModal'));
+        modal.show();
+    }
+
+    async saveFilter() {
+        const name = document.getElementById('filterName').value.trim();
+        const query = document.getElementById('filterQuery').value.trim();
+        const description = document.getElementById('filterDescription').value.trim();
+
+        if (!name) {
+            showToast('Filter name is required', 'error');
+            return;
+        }
+
+        if (!query) {
+            showToast('Filter query is required', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, query, description })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Filter "${name}" saved successfully`, 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('saveFilterModal'));
+                modal.hide();
+                
+                // Reload filters
+                await this.loadSavedFilters();
+            } else {
+                showToast(data.error || 'Failed to save filter', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving filter:', error);
+            showToast('Error saving filter', 'error');
+        }
+    }
+
+    async applyFilter(filter) {
+        try {
+            // Mark filter as used
+            await fetch(`/api/saved-filters/saved-filters/${filter.id}/use`, {
+                method: 'POST'
+            });
+
+            // Apply the filter
+            const advancedSearchInput = document.getElementById('advancedSearchInput');
+            if (advancedSearchInput) {
+                advancedSearchInput.value = filter.query;
+                
+                // Trigger search
+                const event = new Event('input', { bubbles: true });
+                advancedSearchInput.dispatchEvent(event);
+            }
+
+            showToast(`Applied filter: ${filter.name}`, 'success');
+            
+            // Reload filters to update usage count
+            await this.loadSavedFilters();
+        } catch (error) {
+            console.error('Error applying filter:', error);
+            showToast('Error applying filter', 'error');
+        }
+    }
+
+    async showManageFiltersModal() {
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('manageFiltersModal'));
+        modal.show();
+
+        // Load filters table
+        await this.loadFiltersTable();
+    }
+
+    async loadFiltersTable() {
+        const tableBody = document.getElementById('filtersTableBody');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Loading filters...</td></tr>';
+
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters');
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.filters.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No saved filters</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = '';
+                
+                data.filters.forEach(filter => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>
+                            <strong>${filter.name}</strong>
+                            ${filter.description ? `<br><small class="text-muted">${filter.description}</small>` : ''}
+                        </td>
+                        <td><code>${filter.query}</code></td>
+                        <td>${filter.usage_count || 0} times</td>
+                        <td><small>${new Date(filter.created_at).toLocaleDateString()}</small></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="savedFiltersManager.applyFilter(${JSON.stringify(filter).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="savedFiltersManager.deleteFilter(${filter.id}, '${filter.name}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading filters</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error loading filters table:', error);
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading filters</td></tr>';
+        }
+    }
+
+    async deleteFilter(filterId, filterName) {
+        if (!confirm(`Are you sure you want to delete the filter "${filterName}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/saved-filters/saved-filters/${filterId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Filter "${filterName}" deleted successfully`, 'success');
+                
+                // Reload filters
+                await this.loadSavedFilters();
+                await this.loadFiltersTable();
+            } else {
+                showToast(data.error || 'Failed to delete filter', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting filter:', error);
+            showToast('Error deleting filter', 'error');
+        }
+    }
+
+    async exportFilters() {
+        try {
+            const response = await fetch('/api/saved-filters/saved-filters/export');
+            const data = await response.json();
+
+            if (data.success) {
+                const blob = new Blob([JSON.stringify(data.filters, null, 2)], {
+                    type: 'application/json'
+                });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `gtt-saved-filters-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('Filters exported successfully', 'success');
+            } else {
+                showToast(data.error || 'Failed to export filters', 'error');
+            }
+        } catch (error) {
+            console.error('Error exporting filters:', error);
+            showToast('Error exporting filters', 'error');
+        }
+    }
+
+    async importFilters(file) {
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const filters = JSON.parse(text);
+
+            const response = await fetch('/api/saved-filters/saved-filters/import', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ filters, overwrite: false })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Imported ${data.imported} filters, skipped ${data.skipped} duplicates`, 'success');
+                
+                // Reload filters
+                await this.loadSavedFilters();
+                await this.loadFiltersTable();
+            } else {
+                showToast(data.error || 'Failed to import filters', 'error');
+            }
+        } catch (error) {
+            console.error('Error importing filters:', error);
+            showToast('Error importing filters. Please check the file format.', 'error');
+        }
+
+        // Clear file input
+        document.getElementById('importFiltersFile').value = '';
+    }
+}
+
+// Initialize saved filters manager
+let savedFiltersManager;
+document.addEventListener('DOMContentLoaded', function() {
+    savedFiltersManager = new SavedFiltersManager();
+});
+
 // Make functions globally available
 window.applyGridLayout = applyGridLayout;
 window.removeGridLayout = removeGridLayout;
+window.openTradingViewPopup = openTradingViewPopup;

@@ -319,10 +319,11 @@
 
 .table-responsive #customGttTable thead th:nth-child(13),
 .table-responsive #customGttTable tbody td:nth-child(13) { 
-    width: 140px !important; 
-    min-width: 140px !important;
-    max-width: 140px !important;
+    width: 60px !important; 
+    min-width: 60px !important;
+    max-width: 60px !important;
     text-align: center;
+    font-size: 0.75rem !important;
 }
 
 /* Special handling for text overflow in specific columns */
@@ -594,4 +595,179 @@ td:nth-child(9) { /* Amount cells */
 /* Make table header clickable areas larger */
 .sortable {
     padding: 0.3rem 0.2rem !important;
+}
+
+/* Percentage Change Column Styling */
+.percentage-change-column {
+    text-align: center;
+    font-weight: bold;
+    min-width: 80px;
+    max-width: 90px;
+    white-space: nowrap;
+}
+
+/* Table column width optimization */
+#customGttTable th,
+#customGttTable td {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+/* Specific column widths to prevent layout issues */
+#customGttTable th:nth-child(1), 
+#customGttTable td:nth-child(1) { width: 40px; } /* Checkbox */
+
+#customGttTable th:nth-child(2), 
+#customGttTable td:nth-child(2) { width: 90px; } /* Symbol */
+
+#customGttTable th:nth-child(3), 
+#customGttTable td:nth-child(3) { 
+    width: 150px; 
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+} /* Company */
+
+#customGttTable th:nth-child(4), 
+#customGttTable td:nth-child(4) { width: 70px; } /* Exchange */
+
+#customGttTable th:nth-child(5), 
+#customGttTable td:nth-child(5) { width: 60px; } /* Type */
+
+#customGttTable th:nth-child(6), 
+#customGttTable td:nth-child(6) { width: 80px; } /* Trigger */
+
+#customGttTable th:nth-child(7), 
+#customGttTable td:nth-child(7) { width: 80px; } /* Last Price */
+
+#customGttTable th:nth-child(8), 
+#customGttTable td:nth-child(8) { width: 80px; } /* % Change */
+
+#customGttTable th:nth-child(9), 
+#customGttTable td:nth-child(9) { width: 70px; } /* Quantity */
+
+#customGttTable th:nth-child(10), 
+#customGttTable td:nth-child(10) { width: 90px; } /* Amount */
+
+#customGttTable th:nth-child(11), 
+#customGttTable td:nth-child(11) { width: 70px; } /* Nifty Rank */
+
+#customGttTable th:nth-child(12), 
+#customGttTable td:nth-child(12) { 
+    width: 100px;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+} /* Notes */
+
+#customGttTable th:nth-child(13), 
+#customGttTable td:nth-child(13) { width: 80px; } /* Status */
+
+#customGttTable th:nth-child(14), 
+#customGttTable td:nth-child(14) { width: 120px; } /* Actions */
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Table wrapper improvements for wider tables */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+/* Compact table styling */
+.table-compact {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+}
+
+.table-compact th,
+.table-compact td {
+    padding: 0.4rem 0.3rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.table-compact thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Action buttons styling to fit in smaller space */
+.action-btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+    margin: 0.1rem;
+}
+
+.action-btn i {
+    font-size: 0.7rem;
+}
+
+/* Symbol link styling */
+.symbol-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 600;
+    position: relative;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.symbol-link:hover {
+    color: #0a58ca;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.symbol-link:hover::after {
+    content: "📈";
+    position: absolute;
+    right: -15px;
+    top: -2px;
+    font-size: 0.8rem;
+    animation: bounce 0.6s ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-3px);
+    }
+    60% {
+        transform: translateY(-1px);
+    }
+}
+
+/* External link icon for symbol links */
+.symbol-link::before {
+    content: "🔗";
+    font-size: 0.7rem;
+    margin-right: 3px;
+    opacity: 0.6;
 }

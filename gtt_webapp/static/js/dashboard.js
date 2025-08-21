@@ -50,11 +50,120 @@ let allRows = [];
 let filteredRows = [];
 let currentRowLimit = 25;
 
+// Global variables for sorting
+let currentSortColumn = null;
+let currentSortDirection = 'asc';
+
+// Initialize sorting functionality
+function initializeSorting() {
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.getAttribute('data-column');
+            sortTable(column);
+        });
+    });
+    console.log('✅ Sorting functionality initialized');
+}
+
+// Sort table by column
+function sortTable(column) {
+    // Toggle sort direction if same column
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+    }
+    
+    // Update header styling
+    updateSortHeaders();
+    
+    // Sort the filtered rows
+    sortTableRows(column);
+    
+    console.log(`Sorted by ${column} (${currentSortDirection})`);
+}
+
+// Update sort header styling
+function updateSortHeaders() {
+    // Reset all headers
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+    });
+    
+    // Set current sorted header
+    if (currentSortColumn) {
+        const currentHeader = document.querySelector(`[data-column="${currentSortColumn}"]`);
+        if (currentHeader) {
+            currentHeader.classList.add(`sort-${currentSortDirection}`);
+        }
+    }
+}
+
+// Sort table rows client-side
+function sortTableRows(column) {
+    const tbody = document.querySelector('#ordersTable tbody');
+    if (!tbody) return;
+    
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+        let valueA, valueB;
+        
+        // Get the column index based on data-column attribute
+        const columnMap = {
+            'symbol': 0,
+            'exchange': 1,
+            'type': 2,
+            'trigger_values': 3,
+            'last_price': 4,
+            'transaction_type': 5,
+            'quantity': 6,
+            'amount': 7,
+            'status': 8
+        };
+        
+        const columnIndex = columnMap[column];
+        if (columnIndex === undefined) return 0;
+        
+        const cellA = a.cells[columnIndex];
+        const cellB = b.cells[columnIndex];
+        
+        if (!cellA || !cellB) return 0;
+        
+        const textA = cellA.textContent.trim();
+        const textB = cellB.textContent.trim();
+        
+        // Handle numeric columns
+        if (column === 'last_price' || column === 'quantity' || column === 'amount') {
+            valueA = parseFloat(textA.replace(/[^\d.-]/g, '')) || 0;
+            valueB = parseFloat(textB.replace(/[^\d.-]/g, '')) || 0;
+            const result = valueA - valueB;
+            return currentSortDirection === 'asc' ? result : -result;
+        }
+        
+        // Handle text columns
+        valueA = textA.toLowerCase();
+        valueB = textB.toLowerCase();
+        
+        const result = valueA.localeCompare(valueB);
+        return currentSortDirection === 'asc' ? result : -result;
+    });
+    
+    // Clear and re-append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Content Loaded - initializing dashboard');
     
     // Initialize the dashboard
     initializeDashboard();
+    
+    // Initialize sorting functionality
+    initializeSorting();
     
     // Set up event listeners
     setupEventListeners();
