@@ -116,9 +116,11 @@
                 if (animate) {
                     sidebar.style.transition = 'transform 0.3s ease';
                     content.style.transition = 'margin-left 0.3s ease';
+                    toggleBtn.classList.add('transitioning');
                 } else {
                     sidebar.style.transition = 'none';
                     content.style.transition = 'none';
+                    toggleBtn.classList.remove('transitioning');
                 }
                 
                 if (isVisible) {
@@ -130,7 +132,7 @@
                     body.classList.remove('sidebar-hidden');
                     
                     // Update toggle button icon
-                    toggleBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    toggleBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
                     toggleBtn.title = 'Hide Sidebar';
                     
                     if (isMobile()) {
@@ -156,12 +158,17 @@
                 // Save state to localStorage
                 localStorage.setItem('sidebarVisible', isVisible.toString());
                 
-                // Restore transition after a brief delay
+                // Restore transition after animation completes
                 if (!animate) {
                     setTimeout(() => {
                         sidebar.style.transition = '';
                         content.style.transition = '';
+                        toggleBtn.classList.remove('transitioning');
                     }, 50);
+                } else {
+                    setTimeout(() => {
+                        toggleBtn.classList.remove('transitioning');
+                    }, 300);
                 }
             }
             

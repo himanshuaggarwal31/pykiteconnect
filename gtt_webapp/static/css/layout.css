@@ -9,26 +9,30 @@
 /* Toggle Button */
 .toggle-btn {
     position: fixed;
-    top: 15px;
-    left: 15px;
+    top: 20px;
+    left: 20px;
     z-index: 1050;
-    border-radius: 50%;
-    width: 45px;
-    height: 45px;
+    border-radius: 8px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fff;
-    border: 2px solid #1a73e8;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(26, 115, 232, 0.3);
     color: #1a73e8;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    backdrop-filter: blur(10px);
     transition: all 0.3s ease;
+    font-size: 16px;
 }
 
 .toggle-btn:hover {
     background: #1a73e8;
     color: #fff;
-    transform: scale(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(26, 115, 232, 0.3);
+    border-color: #1a73e8;
 }
 
 .toggle-btn:focus {
@@ -36,12 +40,16 @@
     box-shadow: 0 0 0 0.25rem rgba(26, 115, 232, 0.25);
 }
 
+.toggle-btn:active {
+    transform: translateY(0);
+}
+
 /* Sidebar Styles */
 .sidebar-nav {
     position: fixed;
     top: 0;
     left: 0;
-    width: 280px;
+    width: 240px;
     height: 100vh;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -57,14 +65,14 @@
 }
 
 .sidebar-header {
-    padding: 20px;
+    padding: 15px 18px;
     background: rgba(0,0,0,0.1);
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .sidebar-header h3 {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: #fff;
 }
@@ -82,11 +90,12 @@
 
 .sidebar-nav .components li a {
     display: block;
-    padding: 15px 20px;
+    padding: 12px 18px;
     color: rgba(255,255,255,0.9);
     text-decoration: none;
     transition: all 0.3s ease;
     font-weight: 500;
+    font-size: 0.95rem;
 }
 
 .sidebar-nav .components li a:hover {
@@ -109,10 +118,10 @@
 
 /* Main Content Area */
 #content {
-    margin-left: 280px;
+    margin-left: 240px;
     transition: margin-left 0.3s ease;
     min-height: 100vh;
-    padding-top: 20px;
+    padding-top: 10px;
 }
 
 #content.expanded {
@@ -121,17 +130,23 @@
 
 /* Content wrapper adjustments */
 #content .container-fluid {
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
 }
 
 /* Toggle button position adjustment when sidebar is hidden */
 body.sidebar-hidden .toggle-btn {
-    left: 15px;
+    left: 20px;
 }
 
 body.sidebar-visible .toggle-btn {
-    left: 295px;
+    left: 200px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* Special positioning when sidebar is transitioning */
+.toggle-btn.transitioning {
+    transition: left 0.3s ease, background 0.3s ease;
 }
 
 /* Mobile Responsiveness */
@@ -147,6 +162,18 @@ body.sidebar-visible .toggle-btn {
     
     .toggle-btn {
         left: 15px !important;
+        top: 15px;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        font-size: 18px;
+    }
+    
+    body.sidebar-visible .toggle-btn {
+        left: 15px !important;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.3);
     }
     
     .sidebar-nav.show {

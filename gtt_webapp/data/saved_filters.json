@@ -5,8 +5,8 @@
     "query": "QTY > 0 AND PCT_CHG < 10",
     "description": "Orders with quantity greater than 0 and less than 10% change",
     "created_at": "2025-01-14 12:04:00",
-    "last_used": "2025-08-19 22:53:02",
-    "usage_count": 5
+    "last_used": "2025-08-21 12:44:05",
+    "usage_count": 6
   },
   {
     "id": 2,
@@ -14,8 +14,8 @@
     "query": "QTY = 0",
     "description": "Orders with quantity equal to 0",
     "created_at": "2025-01-14 12:04:00",
-    "last_used": "2025-08-19 22:39:53",
-    "usage_count": 3
+    "last_used": "2025-08-21 12:43:32",
+    "usage_count": 4
   },
   {
     "id": 3,
