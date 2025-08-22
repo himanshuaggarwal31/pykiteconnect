@@ -490,67 +490,10 @@
     </div>
 </div>
 
-<!-- Toast for notifications -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
-    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <strong class="me-auto" id="toastTitle">Notification</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-        </div>
-        <div class="toast-body" id="toastBody">
-            Message here
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-/**
- * Show a toast notification
- * @param {string} message - The message to display
- * @param {string} type - The type of notification (success, error, warning, info)
- */
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('notificationToast');
-    const toastTitle = document.getElementById('toastTitle');
-    const toastBody = document.getElementById('toastBody');
-    
-    // Set the title based on type
-    let title = 'Notification';
-    let bgClass = 'bg-info';
-    
-    switch (type) {
-        case 'success':
-            title = 'Success';
-            bgClass = 'bg-success';
-            break;
-        case 'error':
-            title = 'Error';
-            bgClass = 'bg-danger';
-            break;
-        case 'warning':
-            title = 'Warning';
-            bgClass = 'bg-warning';
-            break;
-    }
-    
-    // Set content
-    toastTitle.textContent = title;
-    toastBody.textContent = message;
-    
-    // Remove any existing background classes
-    toast.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info');
-    
-    // Add the appropriate class
-    toast.classList.add(bgClass);
-    
-    // Show the toast
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-}
-
 // Inline delete function to ensure it's always available
 function deleteOrder(orderId) {
     console.log('[DEBUG] deleteOrder called with orderId:', orderId);
@@ -573,16 +516,16 @@ function deleteOrder(orderId) {
             console.log('[DEBUG] Delete response data:', data);
             if (data.error) {
                 console.error('[ERROR] API returned error:', data.error);
-                showToast('Error: ' + data.error, 'error');
+                alert('Error: ' + data.error);
             } else {
                 console.log('[SUCCESS] Order ' + orderId + ' deleted successfully');
-                showToast('Order deleted successfully!', 'success');
+                alert('Order deleted successfully!');
                 location.reload();
             }
         })
         .catch(function(error) {
             console.error('[ERROR] Delete Order Error:', error);
-            showToast('Error deleting order: ' + error.message, 'error');
+            alert('Error deleting order: ' + error.message);
         });
     } else {
         console.log('[DEBUG] User cancelled deletion of order:', orderId);
@@ -623,7 +566,7 @@ function openTradingViewPopup(url, symbol) {
         popup.focus();
     } else {
         // Fallback if popup was blocked
-        showToast('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.', 'warning');
+        alert('Popup blocked! Please allow popups for this site or use Ctrl+Click to open in new tab.');
         window.open(url, '_blank');
     }
 }
