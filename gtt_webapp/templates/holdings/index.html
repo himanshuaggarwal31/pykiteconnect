@@ -456,7 +456,7 @@
                             <td class="text-center">
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-danger btn-sm btn-sell" 
-                                            onclick="showSellModal('{{ holding.tradingsymbol }}', '{{ holding.exchange }}', {{ holding.quantity }}, {{ holding.last_price }}, '{{ holding.product }}')"
+                                            onclick="showSellModal('{{ holding.tradingsymbol }}', '{{ holding.exchange }}', {{ holding.quantity }}, {{ holding.last_price }}, '{{ holding.product }}', {{ holding.average_price }})"
                                             title="Sell {{ holding.tradingsymbol }}">
                                         <i class="fas fa-arrow-down"></i> Sell
                                     </button>
@@ -502,7 +502,7 @@
                             <td class="text-center">
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-danger btn-sm btn-sell" 
-                                            onclick="showSellModal('RELIANCE', 'NSE', 10, 2600.00, 'CNC')"
+                                            onclick="showSellModal('RELIANCE', 'NSE', 10, 2600.00, 'CNC', 2500.00)"
                                             title="Sell RELIANCE">
                                         <i class="fas fa-arrow-down"></i> Sell
                                     </button>
@@ -545,7 +545,7 @@
                             <td class="text-center">
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-danger btn-sm btn-sell" 
-                                            onclick="showSellModal('TCS', 'NSE', 5, 3750.00, 'CNC')"
+                                            onclick="showSellModal('TCS', 'NSE', 5, 3750.00, 'CNC', 3600.00)"
                                             title="Sell TCS">
                                         <i class="fas fa-arrow-down"></i> Sell
                                     </button>
@@ -589,7 +589,7 @@
                             <td class="text-center">
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-danger btn-sm btn-sell" 
-                                            onclick="showSellModal('ALLCARGO', 'NSE', 100, 185.50, 'CNC')"
+                                            onclick="showSellModal('ALLCARGO', 'NSE', 100, 185.50, 'CNC', 180.00)"
                                             title="Sell ALLCARGO">
                                         <i class="fas fa-arrow-down"></i> Sell
                                     </button>
@@ -623,82 +623,217 @@
                     <h5 class="modal-title" id="sellModalLabel">Sell <span id="sellSymbol"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row mb-3">
+                <div class="modal-body py-3">
+                    <div class="row mb-2">
                         <div class="col-6">
-                            <strong>Symbol:</strong> <span id="sellModalSymbol"></span>
+                            <span class="text-muted small">Symbol:</span> <span id="sellModalSymbol"></span>
                         </div>
                         <div class="col-6">
-                            <strong>Exchange:</strong> <span id="sellModalExchange"></span>
+                            <span class="text-muted small">Exchange:</span> <span id="sellModalExchange"></span>
                         </div>
                         <div class="col-6">
-                            <strong>Available Qty:</strong> <span id="sellModalAvailableQty"></span>
+                            <span class="text-muted small">Available Qty:</span> <span id="sellModalAvailableQty"></span>
                         </div>
                         <div class="col-6">
-                            <strong>Last Price:</strong> ₹<span id="sellModalLastPrice"></span>
+                            <span class="text-muted small">Last Price:</span> ₹<span id="sellModalLastPrice"></span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted small">Avg Price:</span> ₹<span id="sellModalAvgPrice"></span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted small">P&L:</span> <span id="sellModalPnL"></span>
                         </div>
                     </div>
 
                     <form id="sellForm">
-                        <div class="row mb-3">
+                        <div class="row mb-2">
                             <div class="col-md-6">
-                                <label for="sellQuantity" class="form-label">Quantity to Sell</label>
-                                <input type="number" class="form-control" id="sellQuantity" required min="1">
+                                <label for="sellQuantity" class="form-label small text-muted">Quantity to Sell</label>
+                                <input type="number" class="form-control form-control-sm" id="sellQuantity" required min="1">
+                                <small class="form-text text-muted">Maximum available: <span id="maxQtyDisplay"></span></small>
                             </div>
                             <div class="col-md-6">
-                                <label for="sellType" class="form-label">Order Type</label>
-                                <select class="form-select" id="sellType" required onchange="toggleSellTypeFields()">
+                                <label for="sellType" class="form-label small text-muted">Order Type</label>
+                                <select class="form-select form-select-sm" id="sellType" required onchange="toggleSellTypeFields()">
                                     <option value="">Select Order Type</option>
                                     <option value="market">Market Order (Immediate)</option>
-                                    <option value="gtt-single">GTT Single-Leg (Stop Loss)</option>
-                                    <option value="gtt-two-leg">GTT Two-Leg (OCO)</option>
+                                    <option value="gtt-single">GTT Single-Leg (One Trigger)</option>
+                                    <option value="gtt-two-leg">GTT Two-Leg (Stop Loss + Target)</option>
                                 </select>
                             </div>
                         </div>
 
                         <!-- GTT Single-Leg Fields -->
-                        <div id="gttSingleFields" class="row mb-3" style="display: none;">
-                            <div class="col-md-6">
-                                <label for="triggerPrice" class="form-label">Trigger Price</label>
-                                <input type="number" class="form-control" id="triggerPrice" step="0.01" placeholder="Price to trigger sell">
-                                <small class="form-text text-muted">Order will execute when price reaches this level</small>
+                        <div id="gttSingleFields" class="mb-2" style="display: none;">
+                            <div class="col-12">
+                                <div class="card border-warning border-opacity-25">
+                                    <div class="card-header bg-warning bg-opacity-10 py-1">
+                                        <h6 class="mb-0 text-warning-emphasis small"><i class="fas fa-crosshairs me-2"></i>Single Trigger Price</h6>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="triggerPrice" class="form-label small text-muted">Trigger Price</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">₹</span>
+                                                    <input type="number" class="form-control" id="triggerPrice" step="0.01" placeholder="e.g., 52.25">
+                                                </div>
+                                                <small class="form-text text-muted">Order executes when price reaches this level</small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="triggerPercent" class="form-label small text-muted">% from Avg Price</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control" id="triggerPercent" step="0.5" placeholder="5" 
+                                                           onchange="calculateTriggerPrice()">
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                                <small class="form-text text-muted">Negative % for stop loss, positive % for target</small>
+                                                <div class="mt-1">
+                                                    <small class="text-muted">Quick:</small>
+                                                    <button type="button" class="btn btn-outline-danger px-1 py-0 me-1" style="font-size: 0.65rem;" onclick="setTriggerPercent(-3)">-3%</button>
+                                                    <button type="button" class="btn btn-outline-danger px-1 py-0 me-1" style="font-size: 0.65rem;" onclick="setTriggerPercent(-5)">-5%</button>
+                                                    <button type="button" class="btn btn-outline-danger px-1 py-0 me-1" style="font-size: 0.65rem;" onclick="setTriggerPercent(-10)">-10%</button>
+                                                    <button type="button" class="btn btn-outline-success px-1 py-0 me-1" style="font-size: 0.65rem;" onclick="setTriggerPercent(10)">+10%</button>
+                                                    <button type="button" class="btn btn-outline-success px-1 py-0 me-1" style="font-size: 0.65rem;" onclick="setTriggerPercent(15)">+15%</button>
+                                                    <button type="button" class="btn btn-outline-success px-1 py-0" style="font-size: 0.65rem;" onclick="setTriggerPercent(20)">+20%</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- GTT Two-Leg Fields -->
-                        <div id="gttTwoLegFields" class="row mb-3" style="display: none;">
-                            <div class="col-md-6">
-                                <label for="triggerPrice1" class="form-label">Trigger Price 1 (Stop Loss)</label>
-                                <input type="number" class="form-control" id="triggerPrice1" step="0.01" placeholder="Lower trigger price">
-                                <small class="form-text text-muted">Usually set below current price for stop loss</small>
+                        <div id="gttTwoLegFields" class="mb-2" style="display: none;">
+                            <!-- Stop Loss Section -->
+                            <div class="col-12 mb-2">
+                                <div class="card border-danger border-opacity-25">
+                                    <div class="card-header bg-danger bg-opacity-10 py-1">
+                                        <h6 class="mb-0 text-danger small"><i class="fas fa-shield-alt me-2"></i>Stop Loss (Lower Trigger)</h6>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="triggerPrice1" class="form-label small text-muted">Trigger Price</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">₹</span>
+                                                    <input type="number" class="form-control" id="triggerPrice1" step="0.01" placeholder="e.g., 52.25">
+                                                </div>
+                                                <small class="form-text text-muted">Price below avg to minimize loss</small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="triggerPercent1" class="form-label small text-muted">% from Avg Price</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control" id="triggerPercent1" step="0.5" placeholder="-5" 
+                                                           onchange="calculateTriggerPrice1()">
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                                <small class="form-text text-muted">Use negative % (e.g., -5% for 5% below avg)</small>
+                                                <div class="mt-1">
+                                                    <small class="text-muted">Quick:</small>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm ms-1 px-1 py-0" style="font-size: 0.65rem;" onclick="setStopLossPercent(-3)">-3%</button>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm ms-1 px-1 py-0" style="font-size: 0.65rem;" onclick="setStopLossPercent(-5)">-5%</button>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm ms-1 px-1 py-0" style="font-size: 0.65rem;" onclick="setStopLossPercent(-10)">-10%</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="triggerPrice2" class="form-label">Trigger Price 2 (Target)</label>
-                                <input type="number" class="form-control" id="triggerPrice2" step="0.01" placeholder="Higher trigger price">
-                                <small class="form-text text-muted">Usually set above current price for profit booking</small>
+                            
+                            <!-- Target Section -->
+                            <div class="col-12 mb-2">
+                                <div class="card border-success border-opacity-25">
+                                    <div class="card-header bg-success bg-opacity-10 py-1">
+                                        <h6 class="mb-0 text-success small"><i class="fas fa-bullseye me-2"></i>Target (Upper Trigger)</h6>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="triggerPrice2" class="form-label small text-muted">Trigger Price</label>
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text">₹</span>
+                                                    <input type="number" class="form-control" id="triggerPrice2" step="0.01" placeholder="e.g., 66.10">
+                                                </div>
+                                                <small class="form-text text-muted">Price above avg to book profit</small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="triggerPercent2" class="form-label small text-muted">% from Avg Price</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control" id="triggerPercent2" step="0.5" placeholder="20" 
+                                                           onchange="calculateTriggerPrice2()">
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                                <small class="form-text text-muted">Use positive % (e.g., 20% for 20% above avg)</small>
+                                                <div class="mt-1">
+                                                    <small class="text-muted">Quick:</small>
+                                                    <button type="button" class="btn btn-outline-success btn-sm ms-1 px-1 py-0" style="font-size: 0.65rem;" onclick="setTargetPercent(10)">+10%</button>
+                                                    <button type="button" class="btn btn-outline-success btn-sm ms-1 px-1 py-0" style="font-size: 0.65rem;" onclick="setTargetPercent(15)">+15%</button>
+                                                    <button type="button" class="btn btn-outline-success btn-sm ms-1 px-1 py-0" style="font-size: 0.65rem;" onclick="setTargetPercent(20)">+20%</button>
+                                                    <button type="button" class="btn btn-outline-success btn-sm ms-1 px-1 py-0" style="font-size: 0.65rem;" onclick="setTargetPercent(25)">+25%</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="alert alert-info">
-                            <strong>Order Types:</strong>
-                            <ul class="mb-0">
-                                <li><strong>Market Order:</strong> Sell immediately at current market price</li>
-                                <li><strong>GTT Single-Leg:</strong> Set one trigger price for stop loss or target</li>
-                                <li><strong>GTT Two-Leg:</strong> Set both stop loss and target prices (One Cancels Other)</li>
-                            </ul>
+                        <div class="alert alert-light border py-2">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fas fa-info-circle me-2 text-muted"></i>
+                                <span class="text-muted small">Order Types Explained</span>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="text-center mb-1">
+                                        <span class="badge bg-primary bg-opacity-75 small">🚀 Market Order</span>
+                                    </div>
+                                    <small class="text-muted">Sell immediately at current market price. Fastest execution.</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center mb-1">
+                                        <span class="badge bg-warning bg-opacity-75 text-dark small">⚡ Single-Leg GTT</span>
+                                    </div>
+                                    <small class="text-muted">Set one trigger price. Good for stop loss OR target booking.</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center mb-1">
+                                        <span class="badge bg-success bg-opacity-75 small">🎯 Two-Leg GTT</span>
+                                    </div>
+                                    <small class="text-muted">Set both stop loss AND target. One cancels the other automatically.</small>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" onclick="executeSellOrder()" id="sellExecuteBtn">
-                        <i class="fas fa-arrow-down"></i> Execute Sell Order
+                <div class="modal-footer border-top-0 bg-light bg-opacity-50">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="executeSellOrder()" id="sellExecuteBtn">
+                        <i class="fas fa-arrow-down me-1"></i>Execute Sell Order
                     </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Toast for notifications -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
+    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody">
+            Message here
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -709,6 +844,50 @@ let filteredHoldings = [];
 let currentRowLimit = -1;
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
+
+/**
+ * Show a toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - The type of notification (success, error, warning, info)
+ */
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('notificationToast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastBody = document.getElementById('toastBody');
+    
+    // Set the title based on type
+    let title = 'Notification';
+    let bgClass = 'bg-info';
+    
+    switch (type) {
+        case 'success':
+            title = 'Success';
+            bgClass = 'bg-success';
+            break;
+        case 'error':
+            title = 'Error';
+            bgClass = 'bg-danger';
+            break;
+        case 'warning':
+            title = 'Warning';
+            bgClass = 'bg-warning';
+            break;
+    }
+    
+    // Set content
+    toastTitle.textContent = title;
+    toastBody.textContent = message;
+    
+    // Remove any existing background classes
+    toast.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info');
+    
+    // Add the appropriate class
+    toast.classList.add(bgClass);
+    
+    // Show the toast
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Holdings page loaded');
@@ -967,7 +1146,7 @@ function checkGTTExistenceForHoldings() {
                         sellButton.addEventListener('click', function(e) {
                             e.preventDefault();
                             e.stopPropagation();
-                            alert('Cannot sell ' + tradingsymbol + ' - GTT order already exists for this symbol.');
+                            showToast('Cannot sell ' + tradingsymbol + ' - GTT order already exists for this symbol.', 'warning');
                             return false;
                         });
                     } else {
@@ -986,8 +1165,9 @@ function checkGTTExistenceForHoldings() {
                             const exchange = row.getAttribute('data-exchange');
                             const quantity = row.cells[2]?.textContent?.trim() || '0';
                             const lastPrice = (row.cells[4]?.textContent || '').replace(/[₹,\s]/g, '') || '0';
+                            const avgPrice = (row.cells[3]?.textContent || '').replace(/[₹,\s]/g, '') || '0'; // Get from avg price column
                             const product = 'CNC'; // Default product
-                            sellButton.setAttribute('onclick', `showSellModal('${tradingsymbol}', '${exchange}', ${quantity}, ${lastPrice}, '${product}')`);
+                            sellButton.setAttribute('onclick', `showSellModal('${tradingsymbol}', '${exchange}', ${quantity}, ${lastPrice}, '${product}', ${avgPrice})`);
                         }
                     }
                 }
@@ -1157,7 +1337,7 @@ function createHoldingRow(holding) {
         <td class="text-center">
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-danger btn-sm" 
-                        onclick="showSellModal('${holding.tradingsymbol}', '${holding.exchange}', ${holding.quantity}, ${holding.last_price}, '${holding.product}')"
+                        onclick="showSellModal('${holding.tradingsymbol}', '${holding.exchange}', ${holding.quantity}, ${holding.last_price}, '${holding.product}', ${holding.average_price || 0})"
                         title="Sell ${holding.tradingsymbol}">
                     <i class="fas fa-arrow-down"></i> Sell
                 </button>
@@ -1463,7 +1643,7 @@ function openTradingViewPopup(url, symbol) {
 let currentSellData = {};
 
 // Enhanced sell modal function with GTT existence check
-function showSellModal(tradingsymbol, exchange, quantity, lastPrice, product) {
+function showSellModal(tradingsymbol, exchange, quantity, lastPrice, product, avgPrice = 0) {
     // First, check if GTT exists for this symbol before opening modal
     fetch('/holdings/api/check-gtt-exists-bulk', {
         method: 'POST',
@@ -1485,17 +1665,17 @@ function showSellModal(tradingsymbol, exchange, quantity, lastPrice, product) {
             
             if (hasGTT) {
                 // GTT exists - block the modal from opening
-                alert(`⚠️ Cannot sell ${tradingsymbol}\n\nReason: GTT order already exists for this symbol.\n\nPlease cancel the existing GTT order first before placing a new sell order.`);
+                showToast(`Cannot sell ${tradingsymbol}. Reason: GTT order already exists for this symbol. Please cancel the existing GTT order first before placing a new sell order.`, 'warning');
                 return;
             }
             
             // No GTT - proceed with opening the modal
-            actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product);
+            actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product, avgPrice);
         } else {
             console.error('GTT check failed:', data.error);
             // If check fails, show warning but allow modal to open
             if (confirm(`Warning: Could not verify GTT status for ${tradingsymbol}.\n\nDo you want to proceed with the sell order?`)) {
-                actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product);
+                actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product, avgPrice);
             }
         }
     })
@@ -1503,13 +1683,13 @@ function showSellModal(tradingsymbol, exchange, quantity, lastPrice, product) {
         console.error('GTT check error:', error);
         // If check fails, show warning but allow modal to open
         if (confirm(`Warning: Could not verify GTT status for ${tradingsymbol}.\n\nDo you want to proceed with the sell order?`)) {
-            actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product);
+            actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product, avgPrice);
         }
     });
 }
 
 // The actual modal opening function (renamed from original showSellModal)
-function actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product) {
+function actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, product, avgPrice = 0) {
     // First check if GTT exists for this symbol
     const symbolKey = `${exchange}:${tradingsymbol}`;
     
@@ -1518,7 +1698,7 @@ function actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, pro
     if (holdingRow) {
         const sellButton = holdingRow.querySelector('.btn-sell');
         if (sellButton && sellButton.getAttribute('data-gtt-exists') === 'true') {
-            alert(`Cannot sell ${tradingsymbol} - GTT order already exists for this symbol.\n\nPlease cancel the existing GTT order first before placing a new sell order.`);
+            showToast(`Cannot sell ${tradingsymbol} - GTT order already exists for this symbol. Please cancel the existing GTT order first before placing a new sell order.`, 'warning');
             return false;
         }
     }
@@ -1528,7 +1708,8 @@ function actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, pro
         exchange: exchange,
         quantity: quantity,
         lastPrice: lastPrice,
-        product: product
+        product: product,
+        avgPrice: avgPrice
     };
     
     // Populate modal with holding data
@@ -1537,10 +1718,22 @@ function actuallyShowSellModal(tradingsymbol, exchange, quantity, lastPrice, pro
     document.getElementById('sellModalExchange').textContent = exchange;
     document.getElementById('sellModalAvailableQty').textContent = quantity;
     document.getElementById('sellModalLastPrice').textContent = lastPrice.toFixed(2);
+    document.getElementById('sellModalAvgPrice').textContent = avgPrice.toFixed(2);
+    
+    // Calculate and display P&L
+    const investment = avgPrice * quantity;
+    const currentValue = lastPrice * quantity;
+    const pnl = currentValue - investment;
+    const pnlPercent = investment > 0 ? ((pnl / investment) * 100) : 0;
+    const pnlClass = pnl >= 0 ? 'text-success' : 'text-danger';
+    const pnlSign = pnl >= 0 ? '+' : '';
+    document.getElementById('sellModalPnL').innerHTML = `<span class="${pnlClass}">${pnlSign}₹${pnl.toFixed(2)} (${pnlSign}${pnlPercent.toFixed(2)}%)</span>`;
     
     // Reset form
     document.getElementById('sellForm').reset();
     document.getElementById('sellQuantity').setAttribute('max', quantity);
+    document.getElementById('sellQuantity').value = quantity; // Auto-populate with available quantity
+    document.getElementById('maxQtyDisplay').textContent = quantity; // Show max quantity
     toggleSellTypeFields();
     
     // Show modal
@@ -1571,7 +1764,7 @@ function executeSellOrder() {
     
     // Validate form
     if (!sellType || !quantity || quantity <= 0 || quantity > currentSellData.quantity) {
-        alert('Please provide valid quantity and order type');
+        showToast('Please provide valid quantity and order type', 'warning');
         return;
     }
     
@@ -1585,7 +1778,7 @@ function executeSellOrder() {
     } else if (sellType === 'gtt-single') {
         const triggerPrice = parseFloat(document.getElementById('triggerPrice').value);
         if (!triggerPrice) {
-            alert('Please provide trigger price for GTT order');
+            showToast('Please provide trigger price for GTT order', 'warning');
             sellButton.disabled = false;
             sellButton.innerHTML = originalText;
             return;
@@ -1595,7 +1788,7 @@ function executeSellOrder() {
         const triggerPrice1 = parseFloat(document.getElementById('triggerPrice1').value);
         const triggerPrice2 = parseFloat(document.getElementById('triggerPrice2').value);
         if (!triggerPrice1 || !triggerPrice2) {
-            alert('Please provide both trigger prices for two-leg GTT order');
+            showToast('Please provide both trigger prices for two-leg GTT order', 'warning');
             sellButton.disabled = false;
             sellButton.innerHTML = originalText;
             return;
@@ -1626,7 +1819,7 @@ function executeMarketSellOrder(quantity) {
         }
         
         // Show success message
-        alert(`Market sell order placed successfully!\nOrder ID: ${data.order_id}\nQuantity: ${quantity} shares of ${currentSellData.tradingsymbol}`);
+        showToast(`Market sell order placed successfully! Order ID: ${data.order_id}. Quantity: ${quantity} shares of ${currentSellData.tradingsymbol}`, 'success');
         
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('sellModal')).hide();
@@ -1636,7 +1829,7 @@ function executeMarketSellOrder(quantity) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Error placing market sell order: ${error.message}`);
+        showToast(`Error placing market sell order: ${error.message}`, 'error');
     })
     .finally(() => {
         const sellButton = document.getElementById('sellExecuteBtn');
@@ -1670,8 +1863,8 @@ function executeGttSellOrder(quantity, triggerType, triggerPrices) {
         }
         
         // Show success message
-        let message = `GTT sell order placed successfully!\nTrigger ID: ${data.trigger_id}\nQuantity: ${quantity} shares of ${currentSellData.tradingsymbol}\nTrigger Type: ${triggerType}\nTrigger Prices: ₹${triggerPrices.join(', ₹')}`;
-        alert(message);
+        let message = `GTT sell order placed successfully! Trigger ID: ${data.trigger_id}. Quantity: ${quantity} shares of ${currentSellData.tradingsymbol}. Trigger Type: ${triggerType}. Trigger Prices: ₹${triggerPrices.join(', ₹')}`;
+        showToast(message, 'success');
         
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('sellModal')).hide();
@@ -1681,7 +1874,7 @@ function executeGttSellOrder(quantity, triggerType, triggerPrices) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Error placing GTT sell order: ${error.message}`);
+        showToast(`Error placing GTT sell order: ${error.message}`, 'error');
     })
     .finally(() => {
         const sellButton = document.getElementById('sellExecuteBtn');
@@ -1689,5 +1882,104 @@ function executeGttSellOrder(quantity, triggerType, triggerPrices) {
         sellButton.innerHTML = '<i class="fas fa-arrow-down"></i> Execute Sell Order';
     });
 }
+
+// Percentage calculation functions for trigger prices
+function calculateTriggerPrice() {
+    const percent = parseFloat(document.getElementById('triggerPercent').value);
+    const avgPrice = currentSellData.avgPrice || 0;
+    
+    if (!isNaN(percent) && avgPrice > 0) {
+        const triggerPrice = avgPrice * (1 + percent / 100);
+        document.getElementById('triggerPrice').value = triggerPrice.toFixed(2);
+    }
+}
+
+function calculateTriggerPrice1() {
+    const percent = parseFloat(document.getElementById('triggerPercent1').value);
+    const avgPrice = currentSellData.avgPrice || 0;
+    
+    if (!isNaN(percent) && avgPrice > 0) {
+        const triggerPrice = avgPrice * (1 + percent / 100);
+        document.getElementById('triggerPrice1').value = triggerPrice.toFixed(2);
+    }
+}
+
+function calculateTriggerPrice2() {
+    const percent = parseFloat(document.getElementById('triggerPercent2').value);
+    const avgPrice = currentSellData.avgPrice || 0;
+    
+    if (!isNaN(percent) && avgPrice > 0) {
+        const triggerPrice = avgPrice * (1 + percent / 100);
+        document.getElementById('triggerPrice2').value = triggerPrice.toFixed(2);
+    }
+}
+
+// Allow manual trigger price changes to update percentage fields
+function updatePercentageFromPrice() {
+    const triggerPrice = parseFloat(document.getElementById('triggerPrice').value);
+    const avgPrice = currentSellData.avgPrice || 0;
+    
+    if (!isNaN(triggerPrice) && avgPrice > 0) {
+        const percent = ((triggerPrice - avgPrice) / avgPrice) * 100;
+        document.getElementById('triggerPercent').value = percent.toFixed(1);
+    }
+}
+
+// Quick percentage setter functions
+function setTriggerPercent(percent) {
+    document.getElementById('triggerPercent').value = percent;
+    calculateTriggerPrice();
+}
+
+function setStopLossPercent(percent) {
+    document.getElementById('triggerPercent1').value = percent;
+    calculateTriggerPrice1();
+}
+
+function setTargetPercent(percent) {
+    document.getElementById('triggerPercent2').value = percent;
+    calculateTriggerPrice2();
+}
+
+// Add event listeners for trigger price fields to update percentages when manually changed
+document.addEventListener('DOMContentLoaded', function() {
+    // Add change listeners for trigger prices to update percentages
+    const triggerPrice = document.getElementById('triggerPrice');
+    const triggerPrice1 = document.getElementById('triggerPrice1');
+    const triggerPrice2 = document.getElementById('triggerPrice2');
+    
+    if (triggerPrice) {
+        triggerPrice.addEventListener('change', function() {
+            const price = parseFloat(this.value);
+            const avgPrice = currentSellData.avgPrice || 0;
+            if (!isNaN(price) && avgPrice > 0) {
+                const percent = ((price - avgPrice) / avgPrice) * 100;
+                document.getElementById('triggerPercent').value = percent.toFixed(1);
+            }
+        });
+    }
+    
+    if (triggerPrice1) {
+        triggerPrice1.addEventListener('change', function() {
+            const price = parseFloat(this.value);
+            const avgPrice = currentSellData.avgPrice || 0;
+            if (!isNaN(price) && avgPrice > 0) {
+                const percent = ((price - avgPrice) / avgPrice) * 100;
+                document.getElementById('triggerPercent1').value = percent.toFixed(1);
+            }
+        });
+    }
+    
+    if (triggerPrice2) {
+        triggerPrice2.addEventListener('change', function() {
+            const price = parseFloat(this.value);
+            const avgPrice = currentSellData.avgPrice || 0;
+            if (!isNaN(price) && avgPrice > 0) {
+                const percent = ((price - avgPrice) / avgPrice) * 100;
+                document.getElementById('triggerPercent2').value = percent.toFixed(1);
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

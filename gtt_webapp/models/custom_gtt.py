@@ -483,8 +483,9 @@ def get_custom_gtt_orders(search='', advanced_search='', order_type='', kite_sta
         offset = (page - 1) * per_page
         
         # Build ORDER BY clause for sorting
-        order_by_clause = "quantity ASC, ID DESC"  # Default sorting
-        
+        # order_by_clause = "quantity ASC, ID DESC"  # Default sorting
+        order_by_clause = "CASE WHEN trigger_price > 0 THEN ((last_price - trigger_price) / trigger_price) * 100 ELSE 0 END"
+
         if sort_by:
             # Map frontend column names to database column names
             column_mapping = {
@@ -666,7 +667,7 @@ def get_orders_not_on_kite():
         cursor.execute("""
             SELECT * FROM custom_gtt_orders
             WHERE placed_on_kite = 0 AND is_active = 1
-            ORDER BY updated_at DESC
+            ORDER BY CASE WHEN trigger_price > 0 THEN ((last_price - trigger_price) / trigger_price) * 100 ELSE 0 END
         """)
         
         columns = [col[0].lower() for col in cursor.description]

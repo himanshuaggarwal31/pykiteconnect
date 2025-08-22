@@ -1,8 +1,8 @@
 # Go to project folder
-Set-Location "C:\Himanshu\REPOS\mygttapp\pykiteconnect"
+Set-Location "C:\Himanshu\REPOS\pykiteconnect"
 
 # Activate virtual environment
-& "C:\Himanshu\REPOS\mygttapp\pykiteconnect\venv\Scripts\Activate.ps1"
+& "C:\Himanshu\REPOS\pykiteconnect\venv\Scripts\Activate.ps1"
 
 # Run AutoConnect.py (step 1)
 python .\app\AutoConnect.py
