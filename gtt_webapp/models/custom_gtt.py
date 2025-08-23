@@ -1,9 +1,15 @@
 import oracledb
 import logging
 import re
+import sys
+import os
 from datetime import datetime
 from db_config import get_connection, configuration
-from flask import current_app
+from flask import current_app, session
+
+# Add the parent directory to access auth module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from auth.access_control import UserDataFilter
 
 # Configure logging early
 logger = logging.getLogger('custom_data')
@@ -54,6 +60,22 @@ def create_custom_gtt_table():
                         ADD trigger_values VARCHAR2(100)
                     """)
                     logger.info("Added trigger_values column to custom_gtt_orders table")
+                    connection.commit()
+                except oracledb.DatabaseError as e:
+                    if 'ORA-01430' in str(e):  # Column already exists
+                        pass
+                    elif 'ORA-00942' in str(e):  # Table does not exist
+                        pass
+                    else:
+                        raise e
+                
+                # Try to add user_id column if needed (for user data isolation)
+                try:
+                    cursor.execute("""
+                        ALTER TABLE custom_gtt_orders 
+                        ADD user_id VARCHAR2(20)
+                    """)
+                    logger.info("Added user_id column to custom_gtt_orders table for user data isolation")
                     connection.commit()
                 except oracledb.DatabaseError as e:
                     if 'ORA-01430' in str(e):  # Column already exists
@@ -126,6 +148,14 @@ def add_custom_gtt_order(data):
     connection = None
     try:
         logger.debug(f"[DEBUG][add_custom_gtt_order] Incoming data: {data}")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][add_custom_gtt_order] No trading_user_id found for current user")
+            return {"success": False, "error": "Trading user ID not configured. Please configure in profile settings."}
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         out_id = cursor.var(int)
@@ -137,8 +167,9 @@ def add_custom_gtt_order(data):
         elif data.get('trigger_values'):
             trigger_values = data.get('trigger_values')
             
-        # Prepare all fields for insert
+        # Prepare all fields for insert including user_id for security
         params = {
+            'user_id': trading_user_id,  # Add user_id for security
             'symbol': sanitize_input(data.get('symbol')),
             'company_name': sanitize_input(data.get('company_name')),
             'nifty_rank': sanitize_number(data.get('nifty_rank')),
@@ -158,15 +189,15 @@ def add_custom_gtt_order(data):
             'id': out_id
         }
         logger.debug(f"[DEBUG][add_custom_gtt_order] SQL params: {params}")
-        # First try the insert with all fields
+        # First try the insert with all fields including user_id
         try:
             cursor.execute("""
                 INSERT INTO custom_gtt_orders (
-                    symbol, company_name, nifty_rank, exchange, order_type, trigger_type,
+                    user_id, symbol, company_name, nifty_rank, exchange, order_type, trigger_type,
                     trigger_price, last_price, quantity, target_price, stop_loss, trigger_values,
                     notes, created_at, updated_at, is_active, placed_on_kite, kite_trigger_id
                 ) VALUES (
-                    :symbol, :company_name, :nifty_rank, :exchange, :order_type, :trigger_type,
+                    :user_id, :symbol, :company_name, :nifty_rank, :exchange, :order_type, :trigger_type,
                     :trigger_price, :last_price, :quantity, :target_price, :stop_loss, :trigger_values,
                     :notes, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :is_active, :placed_on_kite, :kite_trigger_id
                 ) RETURNING id INTO :id
@@ -177,11 +208,11 @@ def add_custom_gtt_order(data):
                 logger.warning(f"[WARNING] Column TRIGGER_VALUES missing, attempting insert without it: {str(e)}")
                 cursor.execute("""
                     INSERT INTO custom_gtt_orders (
-                        symbol, company_name, nifty_rank, exchange, order_type, trigger_type,
+                        user_id, symbol, company_name, nifty_rank, exchange, order_type, trigger_type,
                         trigger_price, last_price, quantity, target_price, stop_loss,
                         notes, created_at, updated_at, is_active, placed_on_kite, kite_trigger_id
                     ) VALUES (
-                        :symbol, :company_name, :nifty_rank, :exchange, :order_type, :trigger_type,
+                        :user_id, :symbol, :company_name, :nifty_rank, :exchange, :order_type, :trigger_type,
                         :trigger_price, :last_price, :quantity, :target_price, :stop_loss,
                         :notes, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, :is_active, :placed_on_kite, :kite_trigger_id
                     ) RETURNING id INTO :id
@@ -203,17 +234,25 @@ def add_custom_gtt_order(data):
             connection.close()
 
 def update_custom_gtt_order(order_id, data):
-    """Update an existing custom GTT order"""
+    """Update an existing custom GTT order (with user security)"""
     logger = get_custom_logger()
     connection = None
     try:
         logger.debug(f"[DEBUG][update_custom_gtt_order] Updating order {order_id} with data: {data}")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][update_custom_gtt_order] No trading_user_id found for current user")
+            return {"success": False, "error": "Trading user ID not configured. Please configure in profile settings."}
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
         # Build the SET clause dynamically based on provided fields
         set_clauses = []
-        params = {'id': order_id}
+        params = {'id': order_id, 'user_id': trading_user_id}
         
         # Special handling for trigger_values if target_price and stop_loss are provided
         if data.get('trigger_type') == 'two-leg' and ('target_price' in data or 'stop_loss' in data):
@@ -263,11 +302,11 @@ def update_custom_gtt_order(order_id, data):
         # Always update the updated_at timestamp
         set_clauses.append("updated_at = CURRENT_TIMESTAMP")
         
-        # Build and execute the query
+        # Build and execute the query with user security
         query = f"""
             UPDATE custom_gtt_orders
             SET {", ".join(set_clauses)}
-            WHERE id = :id
+            WHERE id = :id AND user_id = :user_id
         """
         logger.debug(f"[DEBUG][update_custom_gtt_order] SQL: {query}, Params: {params}")
         cursor.execute(query, params)
@@ -286,18 +325,26 @@ def update_custom_gtt_order(order_id, data):
             connection.close()
 
 def delete_custom_gtt_order(order_id):
-    """Delete a custom GTT order"""
+    """Delete a custom GTT order (with user security)"""
     logger = get_custom_logger()
     connection = None
     try:
         logger.debug(f"[DEBUG][delete_custom_gtt_order] Deleting order: {order_id}")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][delete_custom_gtt_order] No trading_user_id found for current user")
+            return False
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
         cursor.execute("""
             DELETE FROM custom_gtt_orders
-            WHERE id = :id
-        """, {'id': order_id})
+            WHERE id = :id AND user_id = :user_id
+        """, {'id': order_id, 'user_id': trading_user_id})
         
         affected = cursor.rowcount
         connection.commit()
@@ -404,17 +451,25 @@ def parse_advanced_search(advanced_search):
         return [], []
 
 def get_custom_gtt_orders(search='', advanced_search='', order_type='', kite_status='', page=1, per_page=25, sort_by='', sort_order='asc'):
-    """Get all custom GTT orders with filtering, pagination, and sorting"""
+    """Get all custom GTT orders with filtering, pagination, and sorting (filtered by user)"""
     logger = get_custom_logger()
     connection = None
     try:
         logger.debug(f"[DEBUG][get_custom_gtt_orders] Fetching orders with search: '{search}', advanced_search: '{advanced_search}', order_type: '{order_type}', kite_status: '{kite_status}', page: {page}, per_page: {per_page}, sort_by: '{sort_by}', sort_order: '{sort_order}'")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][get_custom_gtt_orders] No trading_user_id found for current user")
+            return {'records': [], 'total_count': 0, 'page': page, 'per_page': per_page, 'pages': 0}
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
-        # Build WHERE clause based on filters
-        where_clauses = ["is_active = 1"]
-        params = {}
+        # Build WHERE clause based on filters - ALWAYS include user_id filter for security
+        where_clauses = ["is_active = 1", "user_id = :user_id"]
+        params = {'user_id': trading_user_id}
         
         if search:
             where_clauses.append("(UPPER(symbol) LIKE UPPER(:search) OR UPPER(company_name) LIKE UPPER(:search))")
@@ -557,18 +612,26 @@ def get_custom_gtt_orders(search='', advanced_search='', order_type='', kite_sta
             connection.close()
 
 def get_order_by_id(order_id):
-    """Get a single order by ID"""
+    """Get a single order by ID (with user security)"""
     logger = get_custom_logger()
     connection = None
     try:
         logger.debug(f"[DEBUG][get_order_by_id] Fetching order: {order_id}")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][get_order_by_id] No trading_user_id found for current user")
+            return None
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
         cursor.execute("""
             SELECT * FROM custom_gtt_orders
-            WHERE id = :id
-        """, {'id': order_id})
+            WHERE id = :id AND user_id = :user_id
+        """, {'id': order_id, 'user_id': trading_user_id})
         
         row = cursor.fetchone()
         if not row:
@@ -594,11 +657,19 @@ def get_order_by_id(order_id):
             connection.close()
 
 def update_kite_status(order_id, trigger_id):
-    """Update order with Kite trigger ID and placed status"""
+    """Update order with Kite trigger ID and placed status (with user security)"""
     logger = get_custom_logger()
     connection = None
     try:
         logger.debug(f"[DEBUG][update_kite_status] Updating Kite status for order {order_id} with trigger ID {trigger_id}")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][update_kite_status] No trading_user_id found for current user")
+            return False
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
@@ -607,8 +678,8 @@ def update_kite_status(order_id, trigger_id):
             SET placed_on_kite = 1,
                 kite_trigger_id = :trigger_id,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = :id
-        """, {'id': order_id, 'trigger_id': trigger_id})
+            WHERE id = :id AND user_id = :user_id
+        """, {'id': order_id, 'trigger_id': trigger_id, 'user_id': trading_user_id})
         
         affected = cursor.rowcount
         connection.commit()
@@ -625,11 +696,19 @@ def update_kite_status(order_id, trigger_id):
             connection.close()
 
 def reset_kite_status(order_id):
-    """Reset Kite status for an order"""
+    """Reset Kite status for an order (with user security)"""
     logger = get_custom_logger()
     connection = None
     try:
         logger.debug(f"[DEBUG][reset_kite_status] Resetting Kite status for order {order_id}")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][reset_kite_status] No trading_user_id found for current user")
+            return False
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
@@ -638,8 +717,8 @@ def reset_kite_status(order_id):
             SET placed_on_kite = 0,
                 kite_trigger_id = NULL,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = :id
-        """, {'id': order_id})
+            WHERE id = :id AND user_id = :user_id
+        """, {'id': order_id, 'user_id': trading_user_id})
         
         affected = cursor.rowcount
         connection.commit()
@@ -656,19 +735,27 @@ def reset_kite_status(order_id):
             connection.close()
 
 def get_orders_not_on_kite():
-    """Get all orders that have not been placed on Kite yet"""
+    """Get all orders that have not been placed on Kite yet (filtered by user)"""
     logger = get_custom_logger()
     connection = None
     try:
         logger.debug(f"[DEBUG][get_orders_not_on_kite] Fetching orders not on Kite")
+        
+        # Get current user's trading_user_id for security
+        user_id = session.get('user_id') if session else None
+        trading_user_id = UserDataFilter.get_user_trading_id(user_id)
+        if not trading_user_id:
+            logger.error("[ERROR][get_orders_not_on_kite] No trading_user_id found for current user")
+            return []
+        
         connection = oracledb.connect(**configuration['db_config'])
         cursor = connection.cursor()
         
         cursor.execute("""
             SELECT * FROM custom_gtt_orders
-            WHERE placed_on_kite = 0 AND is_active = 1
+            WHERE placed_on_kite = 0 AND is_active = 1 AND user_id = :user_id
             ORDER BY CASE WHEN trigger_price > 0 THEN ((last_price - trigger_price) / trigger_price) * 100 ELSE 0 END
-        """)
+        """, {'user_id': trading_user_id})
         
         columns = [col[0].lower() for col in cursor.description]
         orders = []
@@ -860,6 +947,89 @@ def delete_multiple_orders(order_ids):
         if connection:
             connection.rollback()
         raise
+    finally:
+        if connection:
+            connection.close()
+
+def get_custom_gtt_stats_with_leg_counting():
+    """
+    Get custom GTT order statistics with 2-leg counting method.
+    2-leg orders are counted as 2 orders since they have upper and lower triggers.
+    
+    Returns:
+        dict: Statistics including total orders, leg count, active orders, etc.
+    """
+    connection = None
+    try:
+        # Get current user's trading ID for filtering
+        trading_user_id = UserDataFilter.get_user_trading_id()
+        if not trading_user_id:
+            logger.warning("[WARNING][get_custom_gtt_stats_with_leg_counting] No trading user ID found")
+            return {
+                'total_orders': 0,
+                'total_leg_count': 0,
+                'active_orders': 0,
+                'active_leg_count': 0,
+                'single_orders': 0,
+                'two_leg_orders': 0
+            }
+        
+        connection = get_connection()
+        with connection.cursor() as cursor:
+            # Get all counts in one query
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_orders,
+                    COUNT(CASE WHEN trigger_type = 'single' THEN 1 END) as single_orders,
+                    COUNT(CASE WHEN trigger_type = 'two-leg' THEN 1 END) as two_leg_orders,
+                    COUNT(CASE WHEN is_active = 1 THEN 1 END) as active_orders,
+                    COUNT(CASE WHEN is_active = 1 AND trigger_type = 'single' THEN 1 END) as active_single,
+                    COUNT(CASE WHEN is_active = 1 AND trigger_type = 'two-leg' THEN 1 END) as active_two_leg
+                FROM custom_gtt_orders 
+                WHERE user_id = :user_id
+            """, {'user_id': trading_user_id})
+            
+            row = cursor.fetchone()
+            if row:
+                total_orders, single_orders, two_leg_orders, active_orders, active_single, active_two_leg = row
+                
+                # Calculate leg-based counting (2-leg orders count as 2)
+                total_leg_count = single_orders + (two_leg_orders * 2)
+                active_leg_count = active_single + (active_two_leg * 2)
+                
+                stats = {
+                    'total_orders': total_orders,
+                    'total_leg_count': total_leg_count,
+                    'active_orders': active_orders,
+                    'active_leg_count': active_leg_count,
+                    'single_orders': single_orders,
+                    'two_leg_orders': two_leg_orders,
+                    'active_single': active_single,
+                    'active_two_leg': active_two_leg
+                }
+                
+                logger.info(f"[INFO][get_custom_gtt_stats_with_leg_counting] Stats for user {trading_user_id}: {stats}")
+                return stats
+            else:
+                return {
+                    'total_orders': 0,
+                    'total_leg_count': 0,
+                    'active_orders': 0,
+                    'active_leg_count': 0,
+                    'single_orders': 0,
+                    'two_leg_orders': 0
+                }
+        
+    except Exception as e:
+        logger.error(f"[ERROR][get_custom_gtt_stats_with_leg_counting] Database error: {str(e)}", exc_info=True)
+        return {
+            'total_orders': 0,
+            'total_leg_count': 0,
+            'active_orders': 0,
+            'active_leg_count': 0,
+            'single_orders': 0,
+            'two_leg_orders': 0
+        }
     finally:
         if connection:
             connection.close()

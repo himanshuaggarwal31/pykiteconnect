@@ -106,13 +106,23 @@ class UserDataFilter:
     def get_user_trading_id(user_id: int = None) -> str:
         """Get the trading user ID for the current or specified user"""
         if OAuthConfig.BYPASS_AUTH:
-            return "DEV_USER"
+            # In bypass mode, use USER_ID from .env file for consistency with other credentials
+            import os
+            user_id_from_env = os.getenv('USER_ID')
+            if not user_id_from_env:
+                raise ValueError("USER_ID not found in environment variables. Please set USER_ID in .env file.")
+            return user_id_from_env
         
         if not user_id:
             user_id = session.get('user_id')
         
         if user_id == 999:  # Bypass user
-            return "DEV_USER"
+            # Use USER_ID from .env file for consistency
+            import os
+            user_id_from_env = os.getenv('USER_ID')
+            if not user_id_from_env:
+                raise ValueError("USER_ID not found in environment variables. Please set USER_ID in .env file.")
+            return user_id_from_env
         
         if not user_id:
             return None
@@ -124,19 +134,52 @@ class UserDataFilter:
     def get_user_kite_credentials(user_id: int = None) -> dict:
         """Get Kite Connect credentials for user"""
         if OAuthConfig.BYPASS_AUTH:
-            # Return default credentials for development
+            # In bypass mode, read credentials from .env file like other config
+            import os
+            api_key = os.getenv('API_KEY', 'dev_api_key')
+            
+            # Try to read access token from file first, fallback to env
+            access_token = None
+            try:
+                # Try reading from gtt_webapp directory first
+                import os
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                gtt_webapp_dir = os.path.dirname(current_dir)
+                access_token_path = os.path.join(gtt_webapp_dir, 'access_token.txt')
+                
+                with open(access_token_path, 'r') as f:
+                    access_token = f.read().strip()
+            except:
+                # Fallback to environment variable
+                access_token = os.getenv('ACCESS_TOKEN', 'dev_access_token')
+            
             return {
-                'api_key': 'dev_api_key',
-                'access_token': 'dev_access_token'
+                'api_key': api_key,
+                'access_token': access_token
             }
         
         if not user_id:
             user_id = session.get('user_id')
         
         if user_id == 999:  # Bypass user
+            # Same logic as bypass mode for consistency
+            import os
+            api_key = os.getenv('API_KEY', 'dev_api_key')
+            
+            access_token = None
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                gtt_webapp_dir = os.path.dirname(current_dir)
+                access_token_path = os.path.join(gtt_webapp_dir, 'access_token.txt')
+                
+                with open(access_token_path, 'r') as f:
+                    access_token = f.read().strip()
+            except:
+                access_token = os.getenv('ACCESS_TOKEN', 'dev_access_token')
+            
             return {
-                'api_key': 'dev_api_key',
-                'access_token': 'dev_access_token'
+                'api_key': api_key,
+                'access_token': access_token
             }
         
         if not user_id:

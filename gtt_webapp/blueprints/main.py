@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from auth.simple_oauth import login_required, get_current_user
 from auth.access_control import feature_required, log_user_action, UserDataFilter
 from auth.database import user_db
+from models.custom_gtt import get_custom_gtt_orders
 
 main_bp = Blueprint('main', __name__)
 
@@ -41,13 +42,46 @@ def dashboard():
         stats = {}
         if is_kite_connected:
             try:
+                # Get Kite GTT orders (these are from the trading account)
                 gtt_orders = kite.get_gtts()
                 stats['total_gtt_orders'] = len(gtt_orders)
                 stats['active_orders'] = len([o for o in gtt_orders if o.get('status') == 'active'])
+                
+                # Count total triggers (single = 1, two-leg = 2)
+                total_triggers = 0
+                active_triggers = 0
+                for order in gtt_orders:
+                    order_type = order.get('type', 'single')
+                    triggers = 2 if order_type == 'two-leg' else 1
+                    total_triggers += triggers
+                    
+                    if order.get('status') == 'active':
+                        active_triggers += triggers
+                
+                stats['total_gtt_triggers'] = total_triggers
+                stats['active_gtt_triggers'] = active_triggers
+                
             except Exception as e:
                 current_app.logger.warning(f"Could not fetch GTT stats: {str(e)}")
                 stats['total_gtt_orders'] = 0
                 stats['active_orders'] = 0
+                stats['total_gtt_triggers'] = 0
+                stats['active_gtt_triggers'] = 0
+        
+        # Get Custom GTT orders (user-specific from our database) with 2-leg counting
+        try:
+            from models.custom_gtt import get_custom_gtt_stats_with_leg_counting
+            custom_stats = get_custom_gtt_stats_with_leg_counting()
+            stats['custom_orders_count'] = custom_stats.get('total_orders', 0)
+            stats['custom_orders_leg_count'] = custom_stats.get('total_leg_count', 0)
+            stats['custom_active_count'] = custom_stats.get('active_orders', 0)
+            stats['custom_active_leg_count'] = custom_stats.get('active_leg_count', 0)
+        except Exception as e:
+            current_app.logger.warning(f"Could not fetch custom GTT stats: {str(e)}")
+            stats['custom_orders_count'] = 0
+            stats['custom_orders_leg_count'] = 0
+            stats['custom_active_count'] = 0
+            stats['custom_active_leg_count'] = 0
         
         current_app.logger.info(f"Rendering dashboard with stats: {stats}")
         

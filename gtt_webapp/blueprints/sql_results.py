@@ -99,15 +99,20 @@ def fetch_data():
         
         cursor = connection.cursor()
         
-        # Fetch all queries from the QUERY_REPOSITORY table
+        # Get current user's trading ID for filtering
+        from auth.access_control import UserDataFilter
+        current_trading_user_id = UserDataFilter.get_user_trading_id()
+        
+        # Fetch all queries from the QUERY_REPOSITORY table with user filtering
         query_repo = """SELECT *
   FROM (  SELECT file_seq || execution_order     AS query_id,
                  TO_CHAR (TRIM (query_text))     AS query_text,
                  report_name                     AS query_name
             FROM report_sql
+           WHERE (trading_user_id IS NULL OR trading_user_id = :trading_user_id)
         ORDER BY file_seq, TO_NUMBER (execution_order))"""
         
-        cursor.execute(query_repo)
+        cursor.execute(query_repo, {'trading_user_id': current_trading_user_id})
         queries = cursor.fetchall()
         
         # Execute each query and cache results

@@ -6,17 +6,17 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="card bg-primary text-white mb-4">
-                <div class="card-body">
-                    <h1 class="mb-3">
-                        <i class="fas fa-chart-line me-3"></i>Welcome to Kite GTT Management
-                    </h1>
-                    <p class="lead mb-0">
+            <div class="card bg-primary text-white mb-3">
+                <div class="card-body py-3">
+                    <h3 class="mb-2">
+                        <i class="fas fa-chart-line me-2"></i>Welcome to Kite GTT Management
+                    </h3>
+                    <p class="mb-2">
                         Your comprehensive dashboard for managing GTT (Good Till Triggered) orders, 
                         holdings, and trading data analysis.
                     </p>
-                    <div class="mt-3">
-                        <span class="badge {% if kite_connected %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                    <div class="mt-2">
+                        <span class="badge {% if kite_connected %}bg-success{% else %}bg-danger{% endif %}">
                             <i class="fas fa-{% if kite_connected %}check-circle{% else %}exclamation-circle{% endif %} me-2"></i>
                             {% if kite_connected %}Connected to Kite{% else %}Not Connected{% endif %}
                         </span>
@@ -27,89 +27,131 @@
     </div>
 
     {% if kite_connected and stats %}
-    <div class="row mb-4">
+    <div class="row mb-3">
+        <!-- Kite GTT Orders Section (Left) -->
         <div class="col-md-6">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-list-alt fa-3x text-primary mb-3"></i>
-                    <h3 class="text-primary">{{ stats.total_gtt_orders or 0 }}</h3>
-                    <p class="text-muted mb-0">Total GTT Orders</p>
+            <div class="card h-100 border-info shadow-sm">
+                <div class="card-header bg-info text-white text-center py-2">
+                    <h6 class="mb-0">
+                        <i class="fas fa-external-link-alt me-2"></i>Kite GTT Orders
+                    </h6>
+                    <small>Official Trading Account</small>
+                </div>
+                <div class="card-body text-center py-3">
+                    <div class="row">
+                        <div class="col-6">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <h4 class="text-info">{{ stats.total_gtt_orders or 0 }}</h4>
+                            <p class="text-muted mb-0 small">Orders</p>
+                        </div>
+                        <div class="col-6">
+                            <i class="fas fa-play-circle fa-2x text-success mb-2"></i>
+                            <h4 class="text-success">{{ stats.total_gtt_triggers or 0 }}</h4>
+                            <p class="text-muted mb-0 small">Triggers</p>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <small class="text-muted">
+                        From your Kite trading account (2-leg = 2 triggers)
+                    </small>
                 </div>
             </div>
         </div>
+        
+        <!-- Custom GTT Orders Section (Right) -->
         <div class="col-md-6">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-play-circle fa-3x text-success mb-3"></i>
-                    <h3 class="text-success">{{ stats.active_orders or 0 }}</h3>
-                    <p class="text-muted mb-0">Active Orders</p>
+            <div class="card h-100 border-primary shadow-sm">
+                <div class="card-header bg-primary text-white text-center py-2">
+                    <h6 class="mb-0">
+                        <i class="fas fa-database me-2"></i>Custom GTT Orders
+                    </h6>
+                    <small>Personal Tracking (2-leg = 2 counts)</small>
+                </div>
+                <div class="card-body text-center py-3">
+                    <div class="row">
+                        <div class="col-6">
+                            <i class="fas fa-list-alt fa-2x text-primary mb-2"></i>
+                            <h4 class="text-primary">{{ stats.custom_orders_count or 0 }}</h4>
+                            <p class="text-muted mb-0 small">Orders</p>
+                        </div>
+                        <div class="col-6">
+                            <i class="fas fa-bell fa-2x text-warning mb-2"></i>
+                            <h4 class="text-warning">{{ stats.custom_orders_leg_count or 0 }}</h4>
+                            <p class="text-muted mb-0 small">Triggers</p>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <small class="text-muted">
+                        Personal tracking with 2-leg counting
+                    </small>
                 </div>
             </div>
         </div>
     </div>
+    </div>
     {% endif %}
 
     <div class="row">
-        <div class="col-lg-4 col-md-6 mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
-                    <h5 class="card-title">Kite GTT Orders</h5>
-                    <p class="card-text">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
+                    <h6 class="card-title">Kite GTT Orders</h6>
+                    <p class="card-text small">
                         View, create, modify and manage your GTT orders. 
                         Real-time synchronization with your Kite account.
                     </p>
-                    <a href="{{ url_for('main.kite_gtt_orders') }}" class="btn btn-primary">
-                        <i class="fas fa-arrow-right me-2"></i>Manage GTT Orders
+                    <a href="{{ url_for('main.kite_gtt_orders') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Manage GTT Orders
                     </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4 col-md-6 mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-briefcase fa-3x text-success mb-3"></i>
-                    <h5 class="card-title">Holdings</h5>
-                    <p class="card-text">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-briefcase fa-2x text-success mb-2"></i>
+                    <h6 class="card-title">Holdings</h6>
+                    <p class="card-text small">
                         Monitor your portfolio holdings with real-time prices, 
                         P&L tracking, and quick sell functionality.
                     </p>
-                    <a href="{{ url_for('holdings.index') }}" class="btn btn-success">
-                        <i class="fas fa-arrow-right me-2"></i>View Holdings
+                    <a href="{{ url_for('holdings.index') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>View Holdings
                     </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-4 col-md-6 mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-layer-group fa-3x text-info mb-3"></i>
-                    <h5 class="card-title">Custom GTT</h5>
-                    <p class="card-text">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-layer-group fa-2x text-info mb-2"></i>
+                    <h6 class="card-title">Custom GTT</h6>
+                    <p class="card-text small">
                         Create advanced GTT strategies with custom conditions, 
                         multiple triggers, and automated execution.
                     </p>
-                    <a href="{{ url_for('custom_gtt.index') }}" class="btn btn-info">
-                        <i class="fas fa-arrow-right me-2"></i>Custom Strategies
+                    <a href="{{ url_for('custom_gtt.index') }}" class="btn btn-info btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Custom Strategies
                     </a>
                 </div>
             </div>
         </div>
 
         {% if has_feature_access('custom_data') %}
-        <div class="col-lg-4 col-md-6 mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-table fa-3x text-warning mb-3"></i>
-                    <h5 class="card-title">Custom Data</h5>
-                    <p class="card-text">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-table fa-2x text-warning mb-2"></i>
+                    <h6 class="card-title">Custom Data</h6>
+                    <p class="card-text small">
                         Access and analyze custom market data sets, 
                         technical indicators, and trading insights.
                     </p>
-                    <a href="{{ url_for('custom_data.index') }}" class="btn btn-warning">
-                        <i class="fas fa-arrow-right me-2"></i>Explore Data
+                    <a href="{{ url_for('custom_data.index') }}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Explore Data
                     </a>
                 </div>
             </div>
@@ -117,34 +159,34 @@
         {% endif %}
 
         {% if has_feature_access('sql_results') %}
-        <div class="col-lg-4 col-md-6 mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-database fa-3x text-secondary mb-3"></i>
-                    <h5 class="card-title">SQL Results</h5>
-                    <p class="card-text">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-database fa-2x text-secondary mb-2"></i>
+                    <h6 class="card-title">SQL Results</h6>
+                    <p class="card-text small">
                         Execute custom SQL queries on trading data, 
                         generate reports, and perform deep analysis.
                     </p>
-                    <a href="{{ url_for('sql_results.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-right me-2"></i>Run Queries
+                    <a href="{{ url_for('sql_results.index') }}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Run Queries
                     </a>
                 </div>
             </div>
         </div>
         {% endif %}
 
-        <div class="col-lg-4 col-md-6 mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-cog fa-3x text-dark mb-3"></i>
-                    <h5 class="card-title">Settings</h5>
-                    <p class="card-text">
+                <div class="card-body text-center py-3">
+                    <i class="fas fa-cog fa-2x text-dark mb-2"></i>
+                    <h6 class="card-title">Settings</h6>
+                    <p class="card-text small">
                         Configure API connections, trading preferences, 
                         notifications, and system settings.
                     </p>
-                    <button class="btn btn-dark" disabled>
-                        <i class="fas fa-arrow-right me-2"></i>Coming Soon
+                    <button class="btn btn-dark btn-sm" disabled>
+                        <i class="fas fa-arrow-right me-1"></i>Coming Soon
                     </button>
                 </div>
             </div>
