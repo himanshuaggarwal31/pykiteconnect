@@ -72,11 +72,13 @@
                     </a>
                 </li>
                 {% endif %}
+                {% if has_feature_access('sql_results') %}
                 <li class="{% if request.endpoint == 'sql_results.index' %}active{% endif %}">
                     <a href="{{ url_for('sql_results.index') }}">
                         <i class="fas fa-database me-2"></i>SQL Results
                     </a>
                 </li>
+                {% endif %}
                 
                 <!-- Spacer to push user section to bottom -->
                 <li class="flex-grow-1"></li>

@@ -1,7 +1,7 @@
 """
 User profile and trading configuration management
 """
-from flask import Blueprint, render_template_string, request, redirect, url_for, flash, jsonify, session
+from flask import Blueprint, render_template_string, request, redirect, url_for, flash, jsonify, session, current_app
 from .simple_oauth import login_required, admin_required
 from .database import user_db
 from .access_control import log_user_action, feature_required
@@ -12,9 +12,33 @@ profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
 @login_required
 def index():
     """User profile and trading configuration page"""
-    user_id = session.get('user_id')
-    user = user_db.get_user_by_id(user_id)
-    config = user_db.get_trading_config(user_id) or {}
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            flash('Session expired. Please log in again.', 'error')
+            return redirect(url_for('auth.login'))
+            
+        user = user_db.get_user_by_id(user_id)
+        if not user:
+            flash('User not found. Please log in again.', 'error')
+            return redirect(url_for('auth.login'))
+            
+        config = user_db.get_trading_config(user_id) or {}
+        is_first_time = session.get('is_first_time', False)
+        needs_setup = user_db.needs_onboarding(user_id)
+        
+        # Set onboarding flag for users who need setup
+        if needs_setup:
+            session['needs_onboarding'] = True
+            # Clear any existing flash messages that might conflict with onboarding
+            session.pop('_flashes', None)
+        
+    except Exception as e:
+        print(f"Profile page error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Error loading profile. Please try again.', 'error')
+        return redirect(url_for('main.dashboard'))
     
     profile_html = '''
     <!DOCTYPE html>
@@ -45,6 +69,37 @@ def index():
                                     {% endfor %}
                                 {% endif %}
                             {% endwith %}
+                            
+                            {% if session.get('needs_onboarding') %}
+                            <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm mb-4" role="alert" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-left: 4px solid #2196f3 !important;">
+                                <div class="d-flex align-items-start">
+                                    <div class="me-3">
+                                        <i class="fas fa-rocket text-primary" style="font-size: 1.5em; margin-top: 0.2em;"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="alert-heading text-primary mb-2">
+                                            <i class="fas fa-star me-2"></i>Welcome to GTT Dashboard!
+                                        </h5>
+                                        <p class="mb-2">
+                                            <strong>Let's get you started!</strong> To begin trading and managing your GTT orders, 
+                                            please configure your trading credentials below:
+                                        </p>
+                                        <ul class="mb-2 ps-3">
+                                            <li><strong>Trading User ID:</strong> Your unique trading platform identifier</li>
+                                            <li><strong>Kite API Key:</strong> Get this from your <a href="https://kite.trade/connect/login" target="_blank" class="text-decoration-none">Kite Connect dashboard</a></li>
+                                            <li><strong>Access Token:</strong> Generate this after API key setup</li>
+                                        </ul>
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                This one-time setup ensures secure access to your trading data.
+                                            </small>
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                             
                             <form method="POST" action="{{ url_for('profile.update_config') }}">
                                 <div class="row">
@@ -241,6 +296,9 @@ def update_config():
     
     # Update configuration
     if user_db.update_trading_config(user_id, config):
+        # Clear onboarding flags since user has now configured trading settings
+        session.pop('needs_onboarding', None)
+        session.pop('is_first_time', None)
         flash('Trading configuration updated successfully!', 'success')
     else:
         flash('Failed to update configuration. Please try again.', 'error')

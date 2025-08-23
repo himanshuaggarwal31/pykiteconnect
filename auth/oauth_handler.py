@@ -222,6 +222,9 @@ def callback():
         if not user:
             flash('Failed to create user account. Please try again.', 'error')
             return redirect(url_for('auth.login'))
+
+        # Check if this is a first-time user or needs onboarding
+        is_first_time = user_db.needs_onboarding(user['id'])
         
         # Update last login
         user_db.update_last_login(user['id'])
@@ -232,11 +235,24 @@ def callback():
         session['user_name'] = user['name']
         session['user_is_admin'] = user['is_admin']
         session['user_picture'] = user.get('profile_picture', '')
+        session['is_first_time'] = is_first_time
         
         # Clear OAuth state
         session.pop('oauth_state', None)
         
-        flash(f'Welcome back, {user["name"]}!', 'success')
+        # Handle users who need onboarding (either first-time or missing config)
+        if is_first_time:
+            session['needs_onboarding'] = True
+            # No flash message - the onboarding banner will handle the welcome
+            return redirect(url_for('profile.index'))
+        else:
+            # Check if existing user still needs onboarding
+            if user_db.needs_onboarding(user['id']):
+                session['needs_onboarding'] = True
+                # No flash message - the onboarding banner will handle this
+                return redirect(url_for('profile.index'))
+            else:
+                flash(f'Welcome back, {user["name"]}!', 'success')
         
         # Redirect to next page or dashboard
         next_page = request.args.get('next')

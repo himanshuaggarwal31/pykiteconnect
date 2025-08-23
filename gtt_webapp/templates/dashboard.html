@@ -98,6 +98,7 @@
             </div>
         </div>
 
+        {% if has_feature_access('custom_data') %}
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
                 <div class="card-body text-center">
@@ -113,7 +114,9 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
+        {% if has_feature_access('sql_results') %}
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card h-100">
                 <div class="card-body text-center">
@@ -129,6 +132,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card h-100">

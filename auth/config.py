@@ -50,8 +50,8 @@ class AppConfig:
     SESSION_USE_SIGNER = True
     SESSION_KEY_PREFIX = 'gtt_'
     
-    # Database path
-    DB_PATH = Path(__file__).parent.parent / 'auth' / 'users.db'
+    # Database configuration (Oracle DB via environment variables)
+    # Oracle connection details are loaded from gtt_webapp/.env
     
     # Allowed email domains (leave empty to allow all)
     ALLOWED_EMAIL_DOMAINS = [

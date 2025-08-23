@@ -32,7 +32,7 @@ def feature_required(feature_name):
             user_db.log_activity(
                 user_id=user_id,
                 action=f'access_{feature_name}',
-                resource=request.endpoint,
+                resources=request.endpoint,
                 ip_address=request.remote_addr,
                 success=True
             )
@@ -89,7 +89,7 @@ def ip_whitelist_required(f):
             user_db.log_activity(
                 user_id=user_id,
                 action='access_denied_ip',
-                resource=request.endpoint,
+                resources=request.endpoint,
                 ip_address=client_ip,
                 success=False,
                 details=f'IP {client_ip} not in whitelist'
@@ -177,7 +177,7 @@ def log_user_action(action, resource=None, details=None):
                 user_db.log_activity(
                     user_id=user_id,
                     action=action,
-                    resource=resource or request.endpoint,
+                    resources=resource or request.endpoint,
                     ip_address=request.remote_addr,
                     success=True,
                     details=details

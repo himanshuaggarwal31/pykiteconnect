@@ -7,6 +7,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from auth.simple_oauth import login_required, get_current_user
 from auth.access_control import feature_required, log_user_action, UserDataFilter
+from auth.database import user_db
 
 main_bp = Blueprint('main', __name__)
 
@@ -22,6 +23,12 @@ def dashboard():
     """Simple welcome page for the app"""
     try:
         current_app.logger.info("Dashboard route called")
+        
+        # Check if user needs onboarding (first-time setup)
+        user_id = session.get('user_id')
+        if user_id and user_db.needs_onboarding(user_id):
+            session['needs_onboarding'] = True
+            return redirect(url_for('profile.index'))
         
         # Get current user info
         current_user = get_current_user()

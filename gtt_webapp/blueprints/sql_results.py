@@ -3,8 +3,14 @@ import oracledb
 import csv
 import json
 import os
+import sys
 from datetime import datetime
 from db_config import configuration
+
+# Add the parent directory to access auth module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from auth.simple_oauth import login_required
+from auth.access_control import feature_required
 
 sql_results_bp = Blueprint('sql_results', __name__, url_prefix='/sql-results')
 
@@ -69,6 +75,8 @@ def get_cached_results():
     return results
 
 @sql_results_bp.route('/')
+@login_required
+@feature_required('sql_results')
 def index():
     """SQL Results main page"""
     cache_info = get_cache_info()
@@ -77,6 +85,8 @@ def index():
                          last_fetch=cache_info.get('last_fetch', 'Never'))
 
 @sql_results_bp.route('/api/fetch-data', methods=['POST'])
+@login_required
+@feature_required('sql_results')
 def fetch_data():
     """Fetch data from database and cache it"""
     try:
@@ -176,6 +186,8 @@ def fetch_data():
         return jsonify({"error": str(e)}), 500
 
 @sql_results_bp.route('/api/get-cached-data')
+@login_required
+@feature_required('sql_results')
 def get_cached_data():
     """Get cached data from CSV files"""
     try:
@@ -193,6 +205,8 @@ def get_cached_data():
         return jsonify({"error": str(e)}), 500
 
 @sql_results_bp.route('/api/clear-cache', methods=['POST'])
+@login_required
+@feature_required('sql_results')
 def clear_cache():
     """Clear all cached data"""
     try:

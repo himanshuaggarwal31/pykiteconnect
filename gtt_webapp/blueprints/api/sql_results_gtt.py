@@ -1,9 +1,16 @@
 from flask import Blueprint, jsonify, request
 import logging
 import oracledb
+import sys
+import os
 from db_config import configuration
 from models.custom_gtt import add_custom_gtt_order, get_custom_gtt_orders
 from datetime import datetime
+
+# Add the parent directory to access auth module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+from auth.simple_oauth import login_required
+from auth.access_control import feature_required
 
 sql_results_gtt_api = Blueprint('sql_results_gtt_api', __name__)
 
@@ -11,6 +18,8 @@ sql_results_gtt_api = Blueprint('sql_results_gtt_api', __name__)
 logger = logging.getLogger('custom_data')
 
 @sql_results_gtt_api.route('/add-gtt-order', methods=['POST'])
+@login_required
+@feature_required('sql_results')
 def add_gtt_order():
     """Add a GTT order from SQL results page"""
     try:
@@ -201,6 +210,8 @@ def add_gtt_order():
         }), 500
 
 @sql_results_gtt_api.route('/get-last-price', methods=['GET'])
+@login_required
+@feature_required('sql_results')
 def get_last_price():
     """Get the last price for a symbol"""
     connection = None
