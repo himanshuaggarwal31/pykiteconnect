@@ -26,8 +26,9 @@ def dashboard():
         current_app.logger.info("Dashboard route called")
         
         # Check if user needs onboarding (first-time setup)
+        # Skip onboarding for bypass/development user (ID -999999)
         user_id = session.get('user_id')
-        if user_id and user_db.needs_onboarding(user_id):
+        if user_id and user_id != -999999 and user_db.needs_onboarding(user_id):
             session['needs_onboarding'] = True
             return redirect(url_for('profile.index'))
         

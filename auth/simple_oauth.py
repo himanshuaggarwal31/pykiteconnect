@@ -51,10 +51,7 @@ def login_required(f):
     """Decorator to require login for protected routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check if authentication is bypassed
-        if OAuthConfig.BYPASS_AUTH:
-            return f(*args, **kwargs)
-        
+        # Even in bypass mode, require a valid session (either real user or bypass user)
         if 'user_id' not in session:
             return redirect(url_for('auth.login', next=request.url))
         
@@ -62,7 +59,7 @@ def login_required(f):
         if session.get('user_id') == 999:
             return f(*args, **kwargs)
         
-        # Verify user still exists and is active
+        # For real users, verify they still exist and are active
         user = user_db.get_user_by_id(session['user_id'])
         if not user:
             session.clear()
@@ -76,19 +73,17 @@ def admin_required(f):
     """Decorator to require admin privileges"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check if authentication is bypassed
-        if OAuthConfig.BYPASS_AUTH:
-            return f(*args, **kwargs)
-        
+        # Require login first
         if 'user_id' not in session:
             return redirect(url_for('auth.login', next=request.url))
-        
-        # Skip user verification for bypass mode (user_id 999)
+            
+        # Bypass mode user (999) is always admin
         if session.get('user_id') == 999:
             return f(*args, **kwargs)
         
+        # For real users, check if they have admin privileges
         user = user_db.get_user_by_id(session['user_id'])
-        if not user or not user['is_admin']:
+        if not user or not user.get('is_admin'):
             flash('Admin privileges required.', 'error')
             return redirect(url_for('main.dashboard'))
         
@@ -168,24 +163,37 @@ def login():
                             {% endif %}
                         {% endwith %}
                         
-                        <a href="{{ url_for('auth.google_login') }}" class="btn btn-google">
-                            <i class="fab fa-google me-2"></i>
-                            Sign in with Google
-                        </a>
-                        
                         {% if bypass_enabled %}
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>DEVELOPMENT MODE ACTIVE</strong><br>
+                            <small>Google OAuth is disabled for security. Use bypass login below.</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button class="btn btn-google" disabled>
+                                <i class="fab fa-google me-2"></i>
+                                Google OAuth (Disabled in Dev Mode)
+                            </button>
+                        </div>
+                        
                         <div class="mt-3">
                             <a href="{{ url_for('auth.bypass_login') }}" class="btn btn-warning w-100">
                                 <i class="fas fa-unlock me-2"></i>
                                 Development Mode - Bypass Login
                             </a>
                             <div class="mt-2">
-                                <small class="text-muted">
+                                <small class="text-danger">
                                     <i class="fas fa-exclamation-triangle me-1"></i>
-                                    Development mode is enabled
+                                    ⚠️ INSECURE: Only for localhost development
                                 </small>
                             </div>
                         </div>
+                        {% else %}
+                        <a href="{{ url_for('auth.google_login') }}" class="btn btn-google">
+                            <i class="fab fa-google me-2"></i>
+                            Sign in with Google
+                        </a>
                         {% endif %}
                         
                         <div class="mt-4">
@@ -209,6 +217,11 @@ def login():
 @auth_bp.route('/google')
 def google_login():
     """Initiate Google OAuth login"""
+    # Security: Disable Google OAuth when authentication is bypassed
+    if OAuthConfig.BYPASS_AUTH:
+        flash('Google OAuth is disabled in development mode. Use bypass login instead.', 'warning')
+        return redirect(url_for('auth.login'))
+    
     try:
         flow = create_oauth_flow()
         flow.redirect_uri = url_for('auth.callback', _external=True)
@@ -229,6 +242,11 @@ def google_login():
 @auth_bp.route('/callback')
 def callback():
     """Handle OAuth callback from Google"""
+    # Security: Disable OAuth callback when authentication is bypassed
+    if OAuthConfig.BYPASS_AUTH:
+        flash('Google OAuth is disabled in development mode.', 'error')
+        return redirect(url_for('auth.login'))
+        
     try:
         # Check for error parameter from Google
         if request.args.get('error'):
@@ -591,12 +609,20 @@ def bypass_login():
         flash('Authentication bypass is not enabled.', 'error')
         return redirect(url_for('auth.login'))
     
+    # Security: Only allow bypass from localhost/127.0.0.1
+    client_ip = request.environ.get('REMOTE_ADDR', request.remote_addr)
+    allowed_ips = ['127.0.0.1', '::1', 'localhost']
+    
+    if client_ip not in allowed_ips:
+        flash(f'Bypass login only allowed from localhost. Your IP: {client_ip}', 'error')
+        return redirect(url_for('auth.login'))
+    
     # Create a mock session for development
-    session['user_id'] = 999
+    session['user_id'] = -999999
     session['user_email'] = 'dev@localhost'
     session['user_name'] = 'Development User'
     session['user_is_admin'] = True
     session['user_picture'] = ''
     
-    flash('Development mode: Authentication bypassed!', 'success')
+    flash('🚨 DEVELOPMENT MODE: Authentication bypassed! This is NOT secure for production.', 'warning')
     return redirect(url_for('main.dashboard'))
